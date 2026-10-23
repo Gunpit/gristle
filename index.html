@@ -91,6 +91,8 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .dish[disabled] { opacity: .4; cursor: not-allowed; }
 .dish .steps { font-family: var(--pix); font-size: 15px; line-height: 1.25; color: var(--dim); }
 .dish .rating { color: #a3241a; letter-spacing: 3px; }
+.dish .pay { font-family: var(--pix); font-size: 15px; color: #c9a49a; }
+.bookhow { font-size: clamp(13px, 1.8cqw, 15px); color: var(--dim); max-width: 62ch; }
 #seed { width: 6.5em; font-family: var(--pix); font-size: 20px; background: #0d0b09; color: var(--bone); border: 1px solid var(--edge); padding: .1em .4em; }
 .candles { display: inline-flex; gap: 10px; align-items: flex-end; height: 34px; }
 .candles i { display: block; width: 9px; height: 20px; background: #6b6152; position: relative; }
@@ -449,11 +451,11 @@ function mirrorTick(dt) {
 function setMirror(on) { mir.on = on; updatePtr(); if (game && game.onFlip) game.onFlip(); }
 function toLocal(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
 function setRaw(p) { rp.x = p.x; rp.y = p.y; updatePtr(); }
-cv.addEventListener('pointerdown', e => { ac(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} setRaw(toLocal(e)); ptr.down = true; if (mode === 'play' && game.down) game.down(ptr.x, ptr.y); });
+cv.addEventListener('pointerdown', e => { ac(); if (mode === 'cut') { if (cut && cut.t > .5) endCut(); return; } try { cv.setPointerCapture(e.pointerId); } catch (_) {} setRaw(toLocal(e)); ptr.down = true; if (mode === 'play' && game.down) game.down(ptr.x, ptr.y); });
 cv.addEventListener('pointermove', e => { setRaw(toLocal(e)); if (mode === 'play' && game.move) game.move(ptr.x, ptr.y); });
 const up = () => { if (!ptr.down) return; ptr.down = false; if (mode === 'play' && game.up) game.up(ptr.x, ptr.y); };
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-window.addEventListener('keydown', e => { if (e.code !== 'Space' || mode !== 'play') return; e.preventDefault(); if (e.repeat) return; ptr.down = true; if (game.down) game.down(ptr.x, ptr.y); });
+window.addEventListener('keydown', e => { if (mode === 'cut' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); if (cut && cut.t > .5) endCut(); return; } if (e.code !== 'Space' || mode !== 'play') return; e.preventDefault(); if (e.repeat) return; ptr.down = true; if (game.down) game.down(ptr.x, ptr.y); });
 window.addEventListener('keyup', e => { if (e.code === 'Space' && mode === 'play') { e.preventDefault(); up(); } });
 
 /* ---------- particles ---------- */
@@ -527,7 +529,7 @@ function Peel(m) {
   }
   g.down = (x, y) => {
     const p = loc(x, y);
-    const th = g.thorns.find(t => t.alive && Math.hypot(t.x - p.x, t.y - p.y) < 22);
+    const th = g.thorns.find(t => t.alive && (Math.hypot(t.x - p.x, t.y - p.y) < 22 || (t.hx !== undefined && Math.hypot(t.hx - p.x, t.hy - p.y) < 24)));
     if (th) { th.alive = false; tone(900, .08, 'square', .04, -500); burst(x, y, '#2a211a', 6, 120); drip(x, y); g.last = null; return; }
     g.last = p; scrub(p.x, p.y, p.x, p.y);
   };
@@ -557,13 +559,25 @@ function Peel(m) {
     c.strokeStyle = '#2e0806'; c.lineWidth = 2; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(g.cx + (i - 3) * 40, g.cy - 120); c.bezierCurveTo(g.cx + (i - 2) * 30, g.cy - 20, g.cx + (i - 3) * 45, g.cy + 40, g.cx + (i - 3) * 35, g.cy + 120); c.stroke(); }
     c.drawImage(wd, 0, 0, W, H);
     c.drawImage(sk, 0, 0, W, H);
+    // thorns: a barbed stem pushed out of the bark with a pale bulb on the end, the part you grab.
+    // It twitches, and leans up and swells as your hand comes near.
     for (const th of g.thorns) {
       if (!th.alive) continue;
-      c.fillStyle = '#120d0a';
-      for (let k = 0; k < 5; k++) { const a = k / 5 * TAU + th.x; c.beginPath(); c.moveTo(th.x + Math.cos(a + 1.6) * 5, th.y + Math.sin(a + 1.6) * 5); c.lineTo(th.x + Math.cos(a) * 17, th.y + Math.sin(a) * 17); c.lineTo(th.x + Math.cos(a - 1.6) * 5, th.y + Math.sin(a - 1.6) * 5); c.fill(); }
-      c.fillStyle = '#4a3a2a'; c.beginPath(); c.arc(th.x, th.y, 5, 0, TAU); c.fill();
-      c.strokeStyle = `rgba(230,220,195,${.3 + .3 * Math.sin(t * 6)})`; c.lineWidth = 3; c.beginPath(); c.arc(th.x, th.y, 24, 0, TAU); c.stroke();
-      if (g.now < 5) T('pull', th.x + g.ox, th.y + g.oy - 30, 20, '#d9cfb8');
+      const near = clamp(1 - (Math.hypot(ptr.x - g.ox - th.x, ptr.y - g.oy - th.y) - 20) / 60);
+      const a = -Math.PI / 2 + Math.sin(th.x * .7) * .9 + Math.sin(t * 7 + th.y) * (.08 + near * .12);
+      const len = 36 + near * 8, hx = th.x + Math.cos(a) * len, hy = th.y + Math.sin(a) * len, mx = th.x + Math.cos(a + .5) * len * .5, my = th.y + Math.sin(a + .5) * len * .5;
+      th.hx = hx; th.hy = hy;
+      c.fillStyle = '#120d0a'; c.beginPath(); c.ellipse(th.x, th.y, 11, 7, a + Math.PI / 2, 0, TAU); c.fill();
+      c.lineCap = 'round';
+      c.strokeStyle = '#2a1d14'; c.lineWidth = 7; c.beginPath(); c.moveTo(th.x, th.y); c.quadraticCurveTo(mx, my, hx, hy); c.stroke();
+      c.strokeStyle = '#5a4634'; c.lineWidth = 2; c.stroke();
+      c.fillStyle = '#2a1d14';
+      for (const k of [.35, .65]) { const bx = th.x + (hx - th.x) * k, by = th.y + (hy - th.y) * k, ba = a + (k < .5 ? 1.3 : -1.3); c.beginPath(); c.moveTo(bx + Math.cos(a) * 3, by + Math.sin(a) * 3); c.lineTo(bx + Math.cos(ba) * 9, by + Math.sin(ba) * 9); c.lineTo(bx - Math.cos(a) * 3, by - Math.sin(a) * 3); c.fill(); }
+      const r = 7 + near * 3;
+      if (near > 0) { c.fillStyle = `rgba(230,220,195,${near * .3})`; c.beginPath(); c.arc(hx, hy, r + 9, 0, TAU); c.fill(); }
+      c.fillStyle = near > .5 ? '#efe6cf' : '#cfc3a3'; c.beginPath(); c.arc(hx, hy, r, 0, TAU); c.fill();
+      c.fillStyle = '#7a6a52'; c.beginPath(); c.arc(hx + r * .3, hy + r * .3, r * .45, 0, TAU); c.fill();
+      c.strokeStyle = `rgba(230,220,195,${.25 + .25 * Math.sin(t * 5 + th.x)})`; c.lineWidth = 2; c.beginPath(); c.arc(hx, hy, r + 7, 0, TAU); c.stroke();
     }
     for (const d of [-1, 1]) {
       const ex = g.cx + d * 45, ey = g.cy - 25;
@@ -596,7 +610,7 @@ function Peel(m) {
 function Stir(m, kind) {
   const yolk = kind === 'whisk';
   const g = { dur: 16, now: 0, cx: 400, cy: 330, R: 170, ring: 105, prog: 0, need: TAU * (yolk ? 10 : 8), dir: m === 'invert' ? -1 : 1, last: null, spin: 0,
-    hist: [], spd: 0, hi: yolk ? 16 : 13, idle: 0, skin: 0, heat: 0, slops: 0, wrong: 0, laps: 0, bits: [], hands: [], handT: 2.5, grab: null, lastRaw: null };
+    hist: [], spd: 0, comfy: yolk ? 8 : 6.5, idle: 0, skin: 0, heat: 0, slops: 0, wrong: 0, laps: 0, bits: [], hands: [], handT: 2.5, grab: null, lastRaw: null };
   for (let i = 0; i < 16; i++) g.bits.push({ a: rnd(0, TAU), r: rnd(20, 145), s: rnd(6, 13), k: Math.random() < .4 ? 'eye' : 'tooth' });
   const potXY = (a, r) => [g.cx + Math.cos(a) * r, g.cy + Math.sin(a) * r * .55];
   function move(x, y) {
@@ -637,8 +651,9 @@ function Stir(m, kind) {
     if (g.now > 1.2 && !g.grab) {
       if (g.idle > 1.2) g.skin = Math.min(1, g.skin + dt * .5); else g.skin = Math.max(0, g.skin - dt * 1.2);
       if (g.skin >= 1) g.prog = Math.max(0, g.prog - dt * .9);
-      if (g.spd > g.hi) g.heat = Math.min(1, g.heat + dt * .45); else g.heat = Math.max(0, g.heat - dt * .5);
-      if (g.heat >= 1) { g.heat = .2; g.slops++; g.prog = Math.max(0, g.prog - TAU * .4); hurt(.4); sBad(); for (let i = 0; i < 3; i++) burst(g.cx + rnd(-150, 150), g.cy - 30, yolk ? '#6e5c22' : '#141110', 10, 260); }
+      // brisk stirring finishes sooner but heats the pot; above about a lap a second it climbs toward the boil
+      if (g.spd > g.comfy) g.heat = Math.min(1, g.heat + dt * (g.spd - g.comfy) * .09); else g.heat = Math.max(0, g.heat - dt * .3);
+      if (g.heat >= 1) { g.heat = .2; g.slops++; g.prog = Math.max(0, g.prog - TAU * 1.2); hurt(.4); sBad(); for (let i = 0; i < 3; i++) burst(g.cx + rnd(-150, 150), g.cy - 30, yolk ? '#6e5c22' : '#141110', 10, 260); }
     }
     g.handT -= dt;
     if (g.handT <= 0 && g.hands.length < 2) { g.handT = rnd(4, 5.5); g.hands.push({ a: rnd(0, TAU), r: rnd(60, 140), warn: 1.1, rise: 0, life: 2.6, sink: false }); }
@@ -650,7 +665,7 @@ function Stir(m, kind) {
     g.hands = g.hands.filter(h => !(h.sink && h.rise <= 0));
   };
   g.done = () => g.prog >= g.need;
-  g.score = () => clamp(clamp(g.prog / g.need) * 100 - g.slops * 6, 0, 100);
+  g.score = () => clamp(clamp(g.prog / g.need) * 100 - g.slops * 12, 0, 100);
   g.draw = (c, t) => {
     const { cx, cy, R } = g;
     c.fillStyle = '#121010'; c.beginPath(); c.ellipse(cx, cy + 50, R + 24, (R + 24) * .6, 0, 0, Math.PI); c.lineTo(cx - R - 24, cy); c.ellipse(cx, cy, R + 24, (R + 24) * .55, 0, Math.PI, 0); c.fill();
@@ -688,10 +703,13 @@ function Stir(m, kind) {
     c.restore();
     c.strokeStyle = g.wrong > 0 ? '#8e1b12' : 'rgba(217,207,184,.3)'; c.lineWidth = 4;
     for (let k = 0; k < 3; k++) { const a0 = k * TAU / 3 + t * g.dir * .8, a1 = a0 + .7 * g.dir, rr = R + 50; c.beginPath(); c.ellipse(cx, cy, rr, rr * .55, 0, Math.min(a0, a1), Math.max(a0, a1)); c.stroke(); }
-    // heat: only matters if you thrash
-    c.fillStyle = '#0b0908'; c.fillRect(60, 180, 18, 240);
-    c.fillStyle = g.heat > .6 ? '#a3241a' : '#6b3a1e'; c.fillRect(60, 420 - 240 * g.heat, 18, 240 * g.heat);
-    T('HEAT', 69, 172, 18, '#8c826f');
+    // heat gauge: fills while you stir briskly, boils over at the top line
+    c.fillStyle = '#0b0908'; c.fillRect(56, 180, 24, 240);
+    const hg = c.createLinearGradient(0, 420, 0, 180); hg.addColorStop(0, '#6b3a1e'); hg.addColorStop(.6, '#a06a2a'); hg.addColorStop(1, '#a3241a');
+    c.fillStyle = hg; c.fillRect(56, 420 - 240 * g.heat, 24, 240 * g.heat);
+    c.fillStyle = g.heat > .7 && Math.sin(t * 20) > 0 ? '#fff6dc' : '#a3241a'; c.fillRect(48, 178, 40, 4);
+    c.strokeStyle = '#3a3128'; c.lineWidth = 2; c.strokeRect(56, 180, 24, 240);
+    T('BOIL', 68, 170, 18, g.heat > .7 ? '#a3241a' : '#8c826f');
     c.lineWidth = 10; c.strokeStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(140, 100, 30, 0, TAU); c.stroke();
     c.strokeStyle = '#8e1b12'; c.beginPath(); c.arc(140, 100, 30, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(g.prog / g.need)); c.stroke();
     let sx = ptr.x, sy = ptr.y;
@@ -790,72 +808,71 @@ function Fill(m, kind) {
   return g;
 }
 
-// THE FURNACE: hold to work the bellows, tap to pull. Cooking only runs forward, the fire dies if you leave it, and the thing inside lurches.
+// THE FURNACE: hold to work the bellows and the heat climbs; let go and it falls. It only cooks while the heat
+// sits in the pale band, and the band wanders. Too hot and it chars; too cold and it slips back. It lurches.
 function Bake(m) {
   const inv = m === 'invert';
-  const g = { dur: 30, now: 0, round: 0, cook: 0, heat: .45, res: [], flash: 0, msg: '', downAt: -1, jolt: rnd(1.6, 2.8), warn: 0, puff: 0 };
-  function newZone() { g.zc = rnd(.58, .78); g.zw = .15 - g.round * .03; g.target = inv ? 1 - g.zc : g.zc; g.cook = 0; g.heat = .45; }
-  newZone();
-  function pull() {
-    if (g.round >= 3) return;
-    const err = Math.abs(g.cook - g.target), s = clamp(1 - Math.max(0, err - g.zw / 2) / (g.zw * 1.1)) * 100;
-    g.res.push(s); g.flash = .8; g.msg = s > 85 ? 'done' : s > 40 ? 'passable' : g.cook > g.target ? 'ash' : 'raw';
-    s > 60 ? sGood() : sBad(); burst(400, 270, s > 60 ? '#e8a040' : '#1a120c', 12);
-    g.round++; if (g.round < 3) newZone();
-  }
-  g.down = () => { g.downAt = g.now; };
-  g.up = () => { if (g.downAt >= 0 && g.now - g.downAt < .2) pull(); g.downAt = -1; };
+  const g = { dur: 28, now: 0, heat: .25, vel: 0, zone: .5, zoneTo: .5, zoneT: 1.5, prog: 0, char: 0, warn: 0, lurchT: rnd(3.5, 5), puff: 0, state: '', sayT: 0 };
+  const zw = () => .26 - g.prog * .1;
   g.update = dt => {
-    g.now += dt; g.flash = Math.max(0, g.flash - dt);
-    if (g.round >= 3) return;
-    const pumping = ptr.down && g.downAt >= 0 && g.now - g.downAt > .12;
-    if (pumping) { g.heat = Math.min(1, g.heat + dt * 1.1); g.puff += dt; if (g.puff > .25) { g.puff = 0; noise(.18, .04, 500); } }
-    else g.heat = Math.max(.06, g.heat - dt * .32);
-    g.cook += dt * (.02 + .17 * g.heat * g.heat) * (1 + g.round * .15);
-    g.jolt -= dt;
-    if (g.jolt <= 0 && g.warn <= 0) { g.warn = .55; sRattle(); }
-    if (g.warn > 0) { g.warn -= dt; if (g.warn <= 0) { g.cook += rnd(.05, .11); g.jolt = rnd(1.4, 2.6); shake = Math.max(shake, 6); moan(); } }
-    if (g.cook >= 1) { g.res.push(0); g.flash = .8; g.msg = 'ash'; sBad(); hurt(.5); g.round++; if (g.round < 3) newZone(); }
+    g.now += dt; g.sayT -= dt;
+    const blowing = inv ? !ptr.down : ptr.down;
+    g.vel += (blowing ? 1.1 : -.8) * dt; g.vel *= Math.pow(.04, dt);
+    g.heat += g.vel * dt;
+    if (g.heat < 0) { g.heat = 0; g.vel = 0; } if (g.heat > 1) { g.heat = 1; g.vel = 0; }
+    if (blowing) { g.puff += dt; if (g.puff > .3) { g.puff = 0; noise(.2, .04, 450); } }
+    // the band drifts to a new place every so often, and jumps when the thing inside lurches
+    g.zoneT -= dt; if (g.zoneT <= 0) { g.zoneT = rnd(1.2, 2.4); g.zoneTo = rnd(.25, .8); }
+    g.zone += (g.zoneTo - g.zone) * Math.min(1, dt * .9);
+    g.lurchT -= dt;
+    if (g.lurchT <= 0 && g.warn <= 0) { g.warn = .6; sRattle(); }
+    if (g.warn > 0) { g.warn -= dt; if (g.warn <= 0) { g.lurchT = rnd(3.5, 5.5); g.zoneTo = g.zone = clamp(g.zone + (g.zone > .5 ? -1 : 1) * rnd(.18, .3), .2, .85); shake = Math.max(shake, 6); moan(); } }
+    const d = g.heat - g.zone, half = zw() / 2;
+    if (Math.abs(d) < half) { g.prog = Math.min(1, g.prog + dt * .11); g.state = 'good'; }
+    else if (d > half) { g.char = Math.min(1, g.char + dt * (d - half > .12 ? .12 : .05)); g.state = 'hot'; if (Math.random() < dt * 6) burst(400, 240, '#2a2622', 2, 60); }
+    else { g.prog = Math.max(0, g.prog - dt * .035); g.state = 'cold'; }
+    if (g.prog >= 1 && !g.fin) { g.fin = true; sGood(); burst(400, 260, '#e8a040', 20); }
   };
-  g.done = () => g.round >= 3 && g.flash <= 0;
-  g.score = () => g.res.reduce((a, b) => a + b, 0) / 3;
+  g.done = () => g.prog >= 1;
+  g.score = () => clamp(g.prog * 100 - g.char * 55, 0, 100);
   g.draw = (c, t) => {
-    const pump = ptr.down && g.downAt >= 0 && g.now - g.downAt > .12;
-    c.fillStyle = '#1b1815'; c.fillRect(270, 90, 260, 260);
-    c.fillStyle = '#3a2a1c'; for (const [x, y] of [[282, 102], [518, 102], [282, 338], [518, 338]]) { c.beginPath(); c.arc(x, y, 5, 0, TAU); c.fill(); }
-    c.fillStyle = '#050403'; c.beginPath(); c.moveTo(320, 320); c.lineTo(320, 190); c.arc(400, 190, 80, Math.PI, 0); c.lineTo(480, 320); c.fill();
+    const blowing = inv ? !ptr.down : ptr.down;
+    // furnace body and mouth
+    c.fillStyle = '#1b1815'; c.fillRect(250, 90, 280, 270);
+    c.fillStyle = '#3a2a1c'; for (const [x, y] of [[262, 102], [518, 102], [262, 348], [518, 348]]) { c.beginPath(); c.arc(x, y, 5, 0, TAU); c.fill(); }
+    c.fillStyle = '#050403'; c.beginPath(); c.moveTo(310, 330); c.lineTo(310, 190); c.arc(390, 190, 80, Math.PI, 0); c.lineTo(470, 330); c.fill();
     for (let i = 0; i < 9; i++) {
-      const x = 330 + i * 17, hgt = (14 + 60 * g.heat) + Math.sin(t * 9 + i * 2.3) * 12 * g.heat + Math.sin(t * 13 + i) * 6;
-      c.fillStyle = i % 2 ? '#c4501a' : '#7a2a10'; c.beginPath(); c.moveTo(x - 12, 320); c.quadraticCurveTo(x, 320 - hgt * 1.4, x + 12, 320); c.fill();
+      const x = 320 + i * 17, hgt = 12 + 80 * g.heat + Math.sin(t * 9 + i * 2.3) * 10 * (.3 + g.heat) + Math.sin(t * 13 + i) * 5;
+      c.fillStyle = i % 2 ? (g.heat > .8 ? '#e8d070' : '#c4501a') : '#7a2a10'; c.beginPath(); c.moveTo(x - 12, 330); c.quadraticCurveTo(x, 330 - hgt * 1.4, x + 12, 330); c.fill();
     }
-    const b = g.cook, col = `rgb(${(200 - b * 185) | 0},${(160 - b * 150) | 0},${(150 - b * 142) | 0})`, jx = g.warn > 0 ? rnd(-5, 5) : 0;
-    c.fillStyle = col; c.beginPath(); c.ellipse(400 + jx, 270, 46, 26 + b * 6, 0, Math.PI, TAU); c.fill(); c.fillRect(354 + jx, 270, 92, 20);
-    c.fillStyle = '#0a0606'; c.beginPath(); c.arc(386 + jx, 262, 5 + (g.warn > 0 ? 3 : 0), 0, TAU); c.arc(414 + jx, 262, 5 + (g.warn > 0 ? 3 : 0), 0, TAU); c.fill();
-    c.strokeStyle = '#2e2a26'; c.lineWidth = 4; for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(330 + i * 35, 130); c.lineTo(330 + i * 35, 320); c.stroke(); }
-    // bellows
-    const bs = pump ? .55 + Math.abs(Math.sin(t * 10)) * .3 : 1;
-    c.fillStyle = '#3a2418'; c.beginPath(); c.moveTo(160, 230 - 40 * bs); c.lineTo(250, 220); c.lineTo(250, 240); c.lineTo(160, 230 + 40 * bs); c.closePath(); c.fill();
-    c.strokeStyle = '#1e140e'; c.lineWidth = 3; for (let k = 1; k < 4; k++) { c.beginPath(); c.moveTo(160 + k * 22, 230 - 40 * bs * (1 - k / 4.5)); c.lineTo(160 + k * 22, 230 + 40 * bs * (1 - k / 4.5)); c.stroke(); }
-    c.fillStyle = '#5d5a55'; c.fillRect(250, 226, 22, 8);
-    c.fillStyle = `rgba(232,140,50,${g.heat * .5})`; c.fillRect(290, 360, 220 * g.heat, 6);
-    const gx = 120, gw = 560, gy = 400;
-    const gr = c.createLinearGradient(gx, 0, gx + gw, 0); gr.addColorStop(0, '#c9a59a'); gr.addColorStop(.55, '#6b3d1f'); gr.addColorStop(.85, '#1a120c'); gr.addColorStop(1, '#050303');
-    c.fillStyle = gr; c.fillRect(gx, gy, gw, 34);
-    c.strokeStyle = '#3a3128'; c.lineWidth = 3; c.strokeRect(gx, gy, gw, 34);
-    if (g.round < 3) {
-      c.fillStyle = 'rgba(217,207,184,.6)'; c.fillRect(gx + (g.zc - g.zw / 2) * gw, gy - 6, g.zw * gw, 46);
-      if (inv) { c.setLineDash([8, 6]); c.strokeStyle = '#a3241a'; c.lineWidth = 4; c.strokeRect(gx + (g.target - g.zw / 2) * gw, gy - 8, g.zw * gw, 50); c.setLineDash([]); }
-    }
-    T('RAW', gx, gy - 12, 20, '#8c826f', 'left'); T('ASH', gx + gw, gy - 12, 20, '#8c826f', 'right');
-    const nx = gx + clamp(g.cook) * gw;
-    c.fillStyle = '#d9cfb8'; c.beginPath(); c.moveTo(nx, gy + 38); c.lineTo(nx - 11, gy + 58); c.lineTo(nx + 11, gy + 58); c.fill(); c.fillRect(nx - 2, gy - 10, 4, 48);
-    for (let k = 0; k < 3; k++) { c.fillStyle = k < g.res.length ? (g.res[k] > 60 ? '#9da35a' : '#8e1b12') : 'rgba(217,207,184,.2)'; c.fillRect(366 + k * 30, 494, 14, 14); }
-    if (g.round < 3) {
-      if (Math.abs(g.cook - g.target) < g.zw / 2) { c.fillStyle = 'rgba(255,246,220,.35)'; c.fillRect(gx + (g.target - g.zw / 2) * gw, gy - 8, g.zw * gw, 50); T('NOW', nx, gy - 24, 30, '#fff6dc'); }
-      T(pump ? 'stoking' : 'hold: stoke', 205, 300, 20, '#8c826f'); T('tap: pull', 400, 532, 20, '#8c826f');
-      if (g.warn > 0) T('!', 400 + jx, 215, 56, '#a3241a');
-    }
-    if (g.flash > 0) T(g.msg, 400, 375, 40);
+    // the dish inside: pale, then golden as it cooks, blackening where it chars
+    const jx = g.warn > 0 ? rnd(-5, 5) : 0, p = g.prog;
+    c.fillStyle = `rgb(${(200 - p * 20) | 0},${(160 - p * 30) | 0},${(150 - p * 90) | 0})`;
+    c.beginPath(); c.ellipse(390 + jx, 280, 48, 28 + p * 6, 0, Math.PI, TAU); c.fill(); c.fillRect(342 + jx, 280, 96, 20);
+    c.fillStyle = `rgba(15,8,4,${g.char * .9})`; c.beginPath(); c.ellipse(372 + jx, 268, 18, 9, 0, 0, TAU); c.ellipse(410 + jx, 262, 14, 7, 0, 0, TAU); c.ellipse(392 + jx, 288, 22, 6, 0, 0, TAU); c.fill();
+    c.fillStyle = '#0a0606'; const eo = g.warn > 0 ? 3 : 0; c.beginPath(); c.arc(376 + jx, 270, 5 + eo, 0, TAU); c.arc(404 + jx, 270, 5 + eo, 0, TAU); c.fill();
+    c.strokeStyle = '#2e2a26'; c.lineWidth = 4; for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(320 + i * 35, 130); c.lineTo(320 + i * 35, 330); c.stroke(); }
+    if (g.state === 'hot') { c.fillStyle = 'rgba(40,36,32,.35)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(380 + Math.sin(t * 2 + i) * 30, 160 - ((t * 40 + i * 30) % 120), 18 + i * 4, 0, TAU); c.fill(); } }
+    // bellows on the left
+    const bs = blowing ? .55 + Math.abs(Math.sin(t * 10)) * .3 : 1;
+    c.fillStyle = '#3a2418'; c.beginPath(); c.moveTo(140, 240 - 44 * bs); c.lineTo(235, 230); c.lineTo(235, 250); c.lineTo(140, 240 + 44 * bs); c.closePath(); c.fill();
+    c.strokeStyle = '#1e140e'; c.lineWidth = 3; for (let k = 1; k < 4; k++) { c.beginPath(); c.moveTo(140 + k * 22, 240 - 44 * bs * (1 - k / 4.5)); c.lineTo(140 + k * 22, 240 + 44 * bs * (1 - k / 4.5)); c.stroke(); }
+    c.fillStyle = '#5d5a55'; c.fillRect(235, 236, 18, 8);
+    // the heat gauge: cold at the bottom, hot at the top, the pale band is where it cooks
+    const gx = 580, gy0 = 380, gh = 270, yOf = v => gy0 - v * gh, half = zw() / 2;
+    const gr = c.createLinearGradient(0, gy0, 0, gy0 - gh); gr.addColorStop(0, '#3a4a5a'); gr.addColorStop(.5, '#a06a2a'); gr.addColorStop(1, '#a3241a');
+    c.fillStyle = gr; c.fillRect(gx, gy0 - gh, 30, gh); c.strokeStyle = '#3a3128'; c.lineWidth = 3; c.strokeRect(gx, gy0 - gh, 30, gh);
+    c.fillStyle = g.state === 'good' ? 'rgba(255,246,220,.75)' : 'rgba(217,207,184,.45)'; c.fillRect(gx - 6, yOf(g.zone + half), 42, (half * 2) * gh);
+    const hy = yOf(g.heat);
+    c.fillStyle = '#fff6dc'; c.beginPath(); c.moveTo(gx - 8, hy); c.lineTo(gx - 22, hy - 9); c.lineTo(gx - 22, hy + 9); c.fill(); c.fillRect(gx - 4, hy - 2, 38, 4);
+    // progress and char under the furnace
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(250, 380, 280, 8); c.fillStyle = '#e8a040'; c.fillRect(250, 380, 280 * p, 8);
+    if (g.char > 0) { c.fillStyle = '#140a06'; c.fillRect(250, 392, 280 * g.char, 4); }
+    T('HOT', gx + 15, gy0 - gh - 10, 18, '#8c826f'); T('COLD', gx + 15, gy0 + 22, 18, '#8c826f');
+    if (g.warn > 0) T('!', 390 + jx, 215, 56, '#a3241a');
+    else if (g.state === 'hot') T('too hot', 390, 440, 28, '#a3241a');
+    else if (g.state === 'cold' && g.now > 1.5) T('going cold', 390, 440, 26, '#9fbdd6');
+    if (g.now < 4) T(inv ? 'keep it in the band' : 'hold to blow air in. keep it in the band', 390, 520, 24, '#8c826f');
   };
   return g;
 }
@@ -1403,11 +1420,11 @@ const STEPS = {
   catch: { title: 'The Drippings', hint: 'Move the pan. Catch the amber. Not the black.' },
   skim: { title: 'The Skim', hint: 'Hold and drag over the scum. Leave the face alone.' },
   peel: { title: 'The Root', hint: 'Scrape. Pull the thorns first. Don\'t dig.' },
-  stir: { title: 'The Black Milk', hint: 'Stir along the ring. Keep it moving. Steer around the hands.' },
-  whisk: { title: 'The Grave-Yolk', hint: 'Stir along the ring. Keep it moving. Steer around the hands.' },
+  stir: { title: 'The Black Milk', hint: 'Stir along the ring. Faster heats it. Steer around the hands.' },
+  whisk: { title: 'The Grave-Yolk', hint: 'Stir along the ring. Faster heats it. Steer around the hands.' },
   fill: { title: 'The Molds', hint: 'Hold to pour. Leave it to seal. When the pipe shakes, stop.' },
   broth: { title: 'The Broth', hint: 'Hold to pour. Leave it to seal. When the pipe shakes, stop.' },
-  bake: { title: 'The Furnace', hint: 'Hold to stoke. Tap to pull it out.' },
+  bake: { title: 'The Furnace', hint: 'Hold for more heat. Keep it in the pale band.' },
   harvest: { title: 'The Wall', hint: 'Take the open eyes. Best when they shine.' },
   chop: { title: 'The Thing from the Well', hint: 'Cut on the lines. Hold through the long ones. Mind the hand.' }
 };
@@ -1524,7 +1541,7 @@ const ITEMS = {
   laudanum: { name: 'Laudanum', cost: 8, desc: 'Mind, at a cost. Takes an hour.' },
   salt: { name: 'Salt', cost: 5, desc: 'Kept by the door.' }
 };
-const NEW_LIFE = () => ({ day: 1, phase: 'day', teeth: 6, body: 80, mind: 80, hours: 2, sharp: false, hint: null, event: null, up: { bed: 0, lock: 0, lamp: 0, blade: 0, shrine: 0 }, items: { bread: 1, laudanum: 0, salt: 0 }, seen: [], met: [], book: Math.floor(Math.random() * 9000) });
+const NEW_LIFE = () => ({ day: 1, phase: 'day', teeth: 6, body: 80, mind: 80, hours: 2, sharp: false, hint: null, event: null, up: { bed: 0, lock: 0, lamp: 0, blade: 0, shrine: 0 }, items: { bread: 1, laudanum: 0, salt: 0 }, seen: [], met: [], odd: [], book: Math.floor(Math.random() * 9000) });
 let L = null;
 function loadLife() { try { const s = JSON.parse(localStorage.getItem('gristle-life') || 'null'); L = s && s.day ? Object.assign(NEW_LIFE(), s) : null; } catch (e) { L = null; } }
 function saveLife() { try { if (L) localStorage.setItem('gristle-life', JSON.stringify(L)); } catch (e) {} }
@@ -1600,8 +1617,8 @@ function statsHTML() {
 const dayHead = (label, value, right = '') => `<div class="dayhead"><div class="num"><small>${label}</small>${value}</div>${right}</div>`;
 const hoursHTML = h => `<div class="hours" aria-label="${h} ${h === 1 ? 'hour' : 'hours'} of light left">${[0, 1].map(i => `<i class="${i < h ? 'lit' : ''}"></i>`).join('')}</div>`;
 function newLife() {
-  L = NEW_LIFE(); saveLife(); mode = 'day';
-  show(dock(`${dayHead('Day', 1)}<p class="omen big">You wake in a room above a kitchen. You do not remember taking it.</p><p class="omen">When the light goes, the stairs will want you.</p><div class="go"><button id="go" type="button">Get up</button></div>`), n => n.querySelector('#go').onclick = () => dayPanel(), true);
+  L = NEW_LIFE(); saveLife();
+  cutscene('wake', () => { mode = 'day'; show(dock(`${dayHead('Day', 1)}<p class="omen big">You wake in a room above a kitchen. You do not know how you got here.</p><p class="omen">When the light goes, the stairs will want you.</p><div class="go"><button id="go" type="button">Get up</button></div>`), n => n.querySelector('#go').onclick = () => dayPanel(), true); });
 }
 function continueLife() { if (L.phase === 'night') menu(); else if (L.phase === 'up') afterNight(); else quarters(); }
 function quarters(notes) {
@@ -1625,7 +1642,7 @@ function dayPanel(msg) {
       ${A('look', 'Look around', '?')}
     </div></div>
     <div class="go"><button id="down" type="button">Go down</button>
-      <div class="links"><button id="book" class="link" type="button">Open the book</button><button id="shop" class="link" type="button">Spend teeth</button></div></div>`), n => {
+      <div class="links"><button id="book" class="link" type="button" title="Choose a stranger dish for tonight. It pays more teeth and costs more mind.">Open the book</button><button id="shop" class="link" type="button">Spend teeth</button></div></div>`), n => {
     n.querySelector('#book').onclick = () => { tone(147, .8, 'sine', .04); labMenu(true); };
     n.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
       if (L.hours <= 0) return; L.hours--;
@@ -1634,7 +1651,7 @@ function dayPanel(msg) {
       dayPanel(txt + (d ? ` <span class="eyebrow">${d}</span>` : ''));
     });
     n.querySelector('#shop').onclick = shop;
-    n.querySelector('#down').onclick = () => { L.phase = 'night'; saveLife(); tone(55, 1.2, 'sawtooth', .05, -15); menu(); meet('ashe', 'She is already at the stove. She has always been at the stove.'); };
+    n.querySelector('#down').onclick = () => { L.phase = 'night'; saveLife(); tone(55, 1.2, 'sawtooth', .05, -15); cutscene('down', () => { menu(); meet('ashe', 'She is already at the stove. She has always been at the stove.'); }); };
   }, true);
 }
 function eventCard(ev) {
@@ -1757,6 +1774,118 @@ function drawQuarters(c, t) {
   if (U.lamp === 0) { c.fillStyle = '#cfc3a3'; c.fillRect(414, 286, 10, 14); flame(c, 419, 286, 9, t); }
   else if (U.lamp === 1) { c.fillStyle = '#5d4a2a'; c.fillRect(406, 284, 28, 16); c.fillStyle = 'rgba(217,207,184,.35)'; c.beginPath(); c.ellipse(420, 266, 14, 20, 0, 0, TAU); c.fill(); flame(c, 420, 278, 10, t); }
   else { for (const [x, y, h] of [[360, 300, 18], [384, 300, 26], [420, 300, 34], [456, 300, 22], [560, 400, 30], [590, 400, 18], [300, 400, 24]]) { c.fillStyle = '#cfc3a3'; c.fillRect(x - 4, y - h, 8, h); flame(c, x, y - h, 8, t); } }
+  for (const o of L.odd || []) if (ODD[o.id]) ODD[o.id](c, t, o);
+}
+
+/* ---------- what is different when you come back up ----------
+   Each night one or two things in the room have changed. They are generated on the way up and stay for that day. */
+const ODD_WORDS = ['DOWN', 'STAY', 'HUNGRY', 'YOURS', 'AGAIN', 'IT KNOWS', 'EAT'];
+const ODD = {
+  prints(c) { c.fillStyle = 'rgba(25,14,12,.6)'; for (let i = 0; i < 8; i++) { const x = 520 - i * 46, y = 470 - i * 9 + (i % 2) * 16; c.beginPath(); c.ellipse(x, y, 10, 5, -.2, 0, TAU); c.fill(); c.beginPath(); c.arc(x - 9, y - 1, 3, 0, TAU); c.fill(); } },
+  chair(c) { c.fillStyle = '#2a1d14'; c.fillRect(600, 300, 46, 8); c.fillRect(602, 306, 6, 92); c.fillRect(640, 306, 6, 92); c.fillRect(604, 220, 40, 80); c.fillStyle = '#1e140e'; c.fillRect(610, 228, 28, 64); },
+  writing(c, t, o) { c.save(); c.fillStyle = 'rgba(130,22,14,.85)'; c.font = 'bold 46px serif'; c.textAlign = 'center'; c.translate(o.x, 110); c.rotate(-.05); c.fillText(o.w, 0, 0); c.fillRect(-30, 6, 4, 26); c.fillRect(22, 6, 3, 40); c.restore(); },
+  bowl(c, t) { c.fillStyle = '#4a3a2e'; c.beginPath(); c.ellipse(488, 294, 22, 8, 0, 0, TAU); c.fill(); c.fillStyle = '#5a1a14'; c.beginPath(); c.ellipse(488, 291, 17, 5, 0, 0, TAU); c.fill(); c.strokeStyle = 'rgba(217,207,184,.25)'; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(480 + i * 8, 285); c.quadraticCurveTo(476 + i * 8 + Math.sin(t * 2 + i) * 6, 265, 482 + i * 8, 245); c.stroke(); } },
+  board(c) { c.save(); c.translate(150, 392); c.rotate(.12); c.fillStyle = '#4a3626'; c.fillRect(-80, -10, 160, 20); c.restore(); c.fillStyle = 'rgba(200,190,160,.35)'; c.fillRect(84, 150, 132, 22); },
+  eye(c) { const x = 262, y = 212, a = Math.atan2(ptr.y - y, ptr.x - x); c.fillStyle = '#1a120c'; c.beginPath(); c.ellipse(x, y, 16, 9, 0, 0, TAU); c.fill(); c.fillStyle = '#c9c0a6'; c.beginPath(); c.ellipse(x, y, 11, 6, 0, 0, TAU); c.fill(); c.fillStyle = '#050404'; c.beginPath(); c.arc(x + Math.cos(a) * 4, y + Math.sin(a) * 2, 3.5, 0, TAU); c.fill(); },
+  teeth(c) { c.fillStyle = '#d9cfb8'; for (let i = 0; i < 9; i++) { c.fillRect(300 + i * 18, 448 + Math.sin(i) * 3, 7, 9); } },
+  ajar(c) { c.fillStyle = '#020202'; c.fillRect(760, 152, 22, 248); c.fillStyle = 'rgba(150,40,20,.35)'; c.fillRect(764, 380, 14, 20); },
+  bird(c) { c.fillStyle = '#3a3630'; c.beginPath(); c.ellipse(170, 396, 22, 10, .2, 0, TAU); c.fill(); c.beginPath(); c.arc(190, 392, 7, 0, TAU); c.fill(); c.strokeStyle = '#2a2622'; c.lineWidth = 2; c.beginPath(); c.moveTo(160, 404); c.lineTo(156, 412); c.moveTo(168, 405); c.lineTo(166, 413); c.stroke(); },
+  lump(c, t) { c.fillStyle = 'rgba(70,40,34,.9)'; c.beginPath(); c.ellipse(190, 332 + Math.sin(t * 1.4) * 2, 70, 22, 0, Math.PI, TAU); c.fill(); },
+  stain(c, t, o) { const g2 = c.createRadialGradient(o.x, 0, 0, o.x, 0, 90); g2.addColorStop(0, 'rgba(70,14,10,.6)'); g2.addColorStop(1, 'rgba(70,14,10,0)'); c.fillStyle = g2; c.fillRect(o.x - 90, -40, 180, 130); c.fillStyle = 'rgba(70,14,10,.7)'; c.fillRect(o.x - 2, 40, 4, 50 + (t * 12) % 60); }
+};
+function pickOdd() {
+  const ids = Object.keys(ODD).filter(id => id !== 'lump' || L.up.bed >= 1).sort(() => Math.random() - .5);
+  return ids.slice(0, 1 + (Math.random() < .55 ? 1 : 0)).map(id => ({ id, w: pick(ODD_WORDS), x: rnd(300, 520) }));
+}
+
+/* ---------- passages: first-person walks between night and day ----------
+   down: the stairwell into the kitchen. up: climb, the door, the dark room, sleep, morning. wake: a new life's first light.
+   Each one rolls a little of its own (something on the stairs, a figure in the corner). Click or Space skips. */
+let cut = null;
+const STAIR_THINGS = ['candle', 'tooth', 'hand', 'eyes', 'trail', 'none', 'none'];
+function cutscene(kind, onEnd) {
+  ov.hidden = true; ov.innerHTML = ''; portrait = null; mode = 'cut'; game = null; mut = null; twx = null; parts = [];
+  const dur = { down: 3.9, up: 7.2, wake: 2.6 }[kind];
+  cut = { kind, t: 0, dur, onEnd, step: -1, thing: pick(STAIR_THINGS), thingAt: Math.floor(rnd(3, 7)), thingX: rnd(-.6, .6), figure: kind === 'up' && Math.random() < .35, creak: false };
+}
+function endCut() { if (!cut) return; const f = cut.onEnd; cut = null; mode = 'idle'; f(); }
+function footstep() { tone(62, .09, 'sine', .12, -10); noise(.06, .05, 260); }
+function drawStairs(c, t, p, up, open) {
+  const N = 11, f = 330, rise = .34, dir = up ? 1 : -1;
+  const camZ = p * (N - 3.4), eye = dir * camZ * rise + 1.55;
+  const vx = 400 + Math.sin(t * 1.1) * 7, vy = 230 + Math.abs(Math.sin(camZ * Math.PI)) * 8;
+  const P = (x, y, z) => { const d = Math.max(.05, z - camZ); return [vx + x * f / d, vy - (y - eye) * f / d]; };
+  const poly = (pts, col) => { c.fillStyle = col; c.beginPath(); pts.forEach((q, i) => { const [sx, sy] = P(...q); i ? c.lineTo(sx, sy) : c.moveTo(sx, sy); }); c.closePath(); c.fill(); };
+  const lit = (base, z, extra = 0) => { const d = z - camZ, l = (.1 + .62 * clamp(1 / Math.max(.5, d))) * (1 - clamp((d - 1.5) / 8) * .8); const glow = up ? [20, 30, 50] : [210, 110, 40], gk = clamp(z / N) * (up ? .25 : .25 + p * .6) + extra; return rgb(base.map((v, i) => v * l + glow[i] * gk * .5)); };
+  c.fillStyle = '#030202'; c.fillRect(-40, -40, W + 80, H + 80);
+  // the opening at the end: kitchen light below, or your door above
+  const yN = dir * N * rise, zEnd = N + .25;
+  if (!up) poly([[-1, yN, zEnd], [1, yN, zEnd], [1, yN + 2.4, zEnd], [-1, yN + 2.4, zEnd]], `rgba(${200 + p * 55 | 0},${110 + p * 80 | 0},${40 + p * 40 | 0},${.35 + p * .65})`);
+  else {
+    poly([[-1, yN, zEnd], [1, yN, zEnd], [1, yN + 2.4, zEnd], [-1, yN + 2.4, zEnd]], '#05070c');
+    if (open > 0) poly([[-.2, yN, zEnd + .01], [.15, yN, zEnd + .01], [.15, yN + 2.4, zEnd + .01], [-.2, yN + 2.4, zEnd + .01]], `rgba(120,140,170,${open * .5})`);
+    const w = 2 * (1 - open * .85);
+    poly([[-1, yN, zEnd - .01], [-1 + w, yN, zEnd - .01], [-1 + w, yN + 2.4, zEnd - .01], [-1, yN + 2.4, zEnd - .01]], lit([70, 50, 36], zEnd));
+    if (open < .3) { const [hx, hy] = P(.7, yN + 1.1, zEnd - .02); c.fillStyle = '#6b6152'; c.beginPath(); c.arc(hx, hy, 3 * f / Math.max(.5, zEnd - camZ) / 20, 0, TAU); c.fill(); c.fillStyle = 'rgba(200,180,140,.5)'; const [lx, ly] = P(-1, yN + .02, zEnd - .02), [rx] = P(1, yN, zEnd); c.fillRect(lx, ly - 2, rx - lx, 3); }
+  }
+  for (let k = N; k >= 0; k--) {
+    const z0 = Math.max(k, camZ + .22), z1 = k + 1; if (z1 <= camZ + .22) continue;
+    const yk = dir * k * rise, top0 = dir * z0 * rise + 2.7, top1 = dir * z1 * rise + 2.7;
+    poly([[-1, yk, z0], [-1, yk, z1], [-1, top1, z1], [-1, top0, z0]], lit([46, 34, 26], (z0 + z1) / 2));
+    poly([[1, yk, z0], [1, yk, z1], [1, top1, z1], [1, top0, z0]], lit([40, 30, 23], (z0 + z1) / 2));
+    poly([[-1, top0, z0], [1, top0, z0], [1, top1, z1], [-1, top1, z1]], lit([18, 14, 11], (z0 + z1) / 2));
+    if (up && k > 0 && k >= camZ + .22) poly([[-1, yk - rise, k], [1, yk - rise, k], [1, yk, k], [-1, yk, k]], lit([52, 38, 28], k, .05));
+    poly([[-1, yk, z0], [1, yk, z0], [1, yk, z1], [-1, yk, z1]], lit([70, 52, 38], (z0 + z1) / 2));
+    if (!up) poly([[-1, yk, Math.max(z0, z1 - .3)], [1, yk, Math.max(z0, z1 - .3)], [1, yk, z1], [-1, yk, z1]], 'rgba(0,0,0,.5)');
+    if (k >= camZ + .22) {
+      const [ax, ay] = P(-1, yk, k), [bx] = P(1, yk, k), d = k - camZ; c.fillStyle = lit([150, 120, 86], k, .1); c.fillRect(ax, ay - 2, bx - ax, Math.max(2, 6 / d));
+      c.strokeStyle = 'rgba(0,0,0,.55)'; c.lineWidth = Math.max(1, 4 / d);
+      for (const sx of [-1, 1]) { const [x0, y0] = P(sx, yk, k), [x1, y1] = P(sx, dir * k * rise + 2.7, k); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
+    }
+    if (k === cut.thingAt && cut.thing !== 'none' && k + .5 > camZ + .3) {
+      const d = k + .5 - camZ, s = f / d / 100, [sx, sy] = P(cut.thingX, yk, k + .5);
+      if (cut.thing === 'candle') { c.fillStyle = '#cfc3a3'; c.fillRect(sx - 3 * s, sy - 16 * s, 6 * s, 16 * s); flame(c, sx, sy - 16 * s, 7 * s, t); }
+      else if (cut.thing === 'tooth') { c.fillStyle = '#e6dcc3'; c.fillRect(sx - 4 * s, sy - 9 * s, 8 * s, 9 * s); }
+      else if (cut.thing === 'hand') { c.fillStyle = '#b8aa9c'; for (let i = 0; i < 4; i++) c.fillRect(sx - 14 * s + i * 8 * s, sy - 3 * s, 6 * s, 16 * s + Math.sin(t * 6 + i) * 2); c.fillRect(sx - 16 * s, sy + 10 * s, 34 * s, 10 * s); }
+      else if (cut.thing === 'trail') { c.fillStyle = 'rgba(70,14,10,.75)'; c.beginPath(); c.ellipse(sx, sy, 30 * s, 6 * s, 0, 0, TAU); c.fill(); }
+    }
+  }
+  if (cut.thing === 'eyes' && !up && p > .4) { const [ex, ey] = P(0, yN + 1.2, zEnd - .05); c.fillStyle = '#e8d9a0'; c.fillRect(ex - 14, ey, 6, 3); c.fillRect(ex + 8, ey, 6, 3); }
+  return camZ;
+}
+function drawCut(c, dt) {
+  const k = cut; k.t += dt; const t = k.t;
+  if (k.kind === 'down') {
+    if (t < 3.1) {
+      const camZ = drawStairs(c, TT, clamp(t / 3.1), false, 0);
+      const s = Math.floor(camZ); if (s !== k.step) { k.step = s; footstep(); }
+    } else {
+      drawRoom(c, TT); render3D(c, CHARS.ashe, TT, 180, 300, 130, 1 / LS, .9); drawLight(c);
+      const a = clamp(1 - (t - 3.1) / .5); c.fillStyle = `rgba(255,190,120,${a * .9})`; c.fillRect(-40, -40, W + 80, H + 80);
+      T(`NIGHT ${L ? L.day : ''}`, 400, 300, 72, '#d9cfb8');
+    }
+  } else if (k.kind === 'up') {
+    if (t < 2.2) { const camZ = drawStairs(c, TT, clamp(t / 2.2), true, 0); const s = Math.floor(camZ); if (s !== k.step) { k.step = s; footstep(); } }
+    else if (t < 3.0) { if (!k.creak) { k.creak = true; tone(170, .9, 'sawtooth', .03, -70); noise(.6, .03, 900); } drawStairs(c, TT, 1, true, clamp((t - 2.2) / .8)); }
+    else if (t < 4.9) {
+      const z = 1.3 - clamp((t - 3) / 1.9) * .25;
+      c.save(); c.translate(560, 300); c.scale(z, z); c.translate(-560, -300); drawQuarters(c, TT);
+      if (k.figure && t < 4.3) { c.fillStyle = 'rgba(3,2,2,.92)'; c.beginPath(); c.ellipse(640, 150, 22, 28, 0, 0, TAU); c.fill(); c.fillRect(612, 176, 56, 226); c.fillStyle = 'rgba(220,210,180,.8)'; c.fillRect(630, 146, 4, 3); c.fillRect(646, 146, 4, 3); }
+      c.restore();
+      c.fillStyle = 'rgba(4,7,14,.72)'; c.fillRect(-40, -40, W + 80, H + 80);
+      c.fillStyle = 'rgba(150,170,200,.12)'; for (let i = 0; i < 3; i++) c.fillRect(70, 88 + i * 34, 150, 4);
+      if (k.figure && t > 4.25 && t < 4.35) { c.fillStyle = 'rgba(255,255,255,.6)'; c.fillRect(-40, -40, W + 80, H + 80); }
+    } else if (t < 5.6) { c.fillStyle = '#000'; c.fillRect(-40, -40, W + 80, H + 80); T('you sleep', 400, 300, 34, '#5e564a'); }
+    else { drawMorning(c, (t - 5.6) / 1.6, L ? L.day + 1 : 1); }
+  } else if (k.kind === 'wake') drawMorning(c, t / 2.6, L ? L.day : 1);
+  if (t > .5) T('click to skip', W - 16, 545, 18, '#4a443a', 'right');
+  if (t >= k.dur) endCut();
+}
+function drawMorning(c, p, day) {
+  drawQuarters(c, TT); drawLight(c, 420, 270, 40, [440, 540, 680][L.up.lamp], 40);
+  c.fillStyle = `rgba(0,0,0,${clamp(1 - p * 1.6)})`; c.fillRect(-40, -40, W + 80, H + 80);
+  T(`DAY ${day}`, 400, 290, 72, '#d9cfb8');
+  if (p > .3) T('The light comes through the boards.', 400, 336, 24, '#8c826f');
 }
 
 /* ---------- close-ups ----------
@@ -2179,7 +2308,7 @@ function verdict() {
     <span class="eyebrow">${diffs(before)}</span>
     ${opened ? '<p class="omen">Something else is on the stairs.</p>' : ''}
     <div class="btns"><button id="go" type="button">Go up</button></div></div></div>`,
-    n => { n.querySelector('#go').onclick = afterNight; });
+    n => { n.querySelector('#go').onclick = () => { if (L.mind <= 0) return afterNight(); L.odd = pickOdd(); saveLife(); cutscene('up', afterNight); }; });
   if (st === 0 || st === 3) closeup(g.id, g.verdict[st]);
 }
 document.getElementById('menuBtn').onclick = () => { if (mode === 'ready' || mode === 'play' || mode === 'end') return; ac(); startDrone(); titleScreen(); };
@@ -2303,16 +2432,22 @@ function labMenu(life) {
       <canvas data-i="${i}" width="160" height="100"></canvas>
       <strong>${d.name}</strong><span>${d.blurb}</span>
       <span class="steps">${d.steps.map(stepLine).join('<br>')}</span>
-      <span class="rating" aria-label="Difficulty ${d.rating} of 5">${'◆'.repeat(d.rating)}${'◇'.repeat(5 - d.rating)}</span></button>`).join('');
+      <span class="rating" aria-label="Difficulty ${d.rating} of 5">${'◆'.repeat(d.rating)}${'◇'.repeat(5 - d.rating)}</span>
+      ${life ? `<span class="pay">+${Math.round(d.rating * 1.5 * (1 + .25 * L.up.shrine))} extra teeth${d.steps.some(s => s.twists.length) ? ` · −${d.steps.reduce((n, s) => n + s.twists.length, 0) * 2} extra mind` : ''}</span>` : ''}</button>`).join('');
   const controls = life
     ? `<button id="close" class="ghost" type="button">Close the book</button>`
     : `<button id="next" type="button">Turn the page</button><button id="one" class="ghost" type="button">One step</button>
       <input id="seed" type="number" inputmode="numeric" min="1" value="${labBook}" aria-label="Book number"><button id="open" class="ghost" type="button">Open</button><button id="leave" class="ghost" type="button">Leave</button>`;
   show(`<div class="card wide"><div class="txt"><span class="eyebrow">${life ? `Night ${L.day} · the book on the table` : `The Lab · book ${labBook}`}</span>
-      ${life ? '<p class="omen">The pages were blank yesterday.</p>' : ''}<div class="menu">${cards}</div>
+      ${life ? `<p class="omen">The pages were blank yesterday.</p>
+        <p class="bookhow">Cook one of these tonight instead of the usual dishes downstairs. Stranger recipes pay more teeth, the more ◆ the more. The small marks after a step are things that will be wrong down there, and each one costs a little extra mind. You can close the book and go down as normal.</p>` : ''}<div class="menu">${cards}</div>
       <div class="btns">${controls}</div></div></div>`, n => {
     n.querySelectorAll('canvas[data-i]').forEach(cn => { const x = cn.getContext('2d', { willReadFrequently: true }); x.fillStyle = '#0d0b09'; x.fillRect(0, 0, 160, 100); x.save(); x.scale(.5, .5); drawLabDish(x, dishes[+cn.dataset.i], 160, 110, 70); x.restore(); postFX(x, 160, 100, 22); });
-    n.querySelectorAll('.dish').forEach(b => b.onclick = () => startLab(dishes[+b.dataset.i], life));
+    n.querySelectorAll('.dish').forEach(b => b.onclick = () => {
+      const d = dishes[+b.dataset.i];
+      if (!life) return startLab(d);
+      L.phase = 'night'; saveLife(); cutscene('down', () => startLab(d, true));
+    });
     if (life) { n.querySelector('#close').onclick = () => dayPanel(); return; }
     n.querySelector('#next').onclick = () => { labBook++; labMenu(); };
     n.querySelector('#open').onclick = () => { const v = parseInt(n.querySelector('#seed').value, 10); if (v > 0) { labBook = v; labMenu(); } };
@@ -2385,9 +2520,10 @@ function frame(now) {
   // a worn mind sees things; a worn body shakes the hand
   const halluc = L ? clamp((40 - L.mind) / 40) : 0, tremA = (L ? clamp((45 - L.body) / 45) * 9 : 0) + (twx && twx.quake ? 7 : 0);
   tre.x = (Math.sin(TT * 23) + Math.sin(TT * 37) * .5) * tremA; tre.y = (Math.cos(TT * 19) + Math.sin(TT * 29) * .5) * tremA;
-  if (mode === 'day' && L) { drawQuarters(c, TT); drawShades(c, TT, halluc); drawParts(c, dt); drawLight(c, 420, 270, 40, [440, 540, 680][L.up.lamp], 40); }
+  if (mode === 'cut' && cut) drawCut(c, dt);
+  else if (mode === 'day' && L) { drawQuarters(c, TT); drawShades(c, TT, halluc); drawParts(c, dt); drawLight(c, 420, 270, 40, [440, 540, 680][L.up.lamp], 40); }
   else drawRoom(c, TT);
-  if (game && mode !== 'idle' && mode !== 'day') {
+  if (game && mode !== 'idle' && mode !== 'day' && mode !== 'cut') {
     drawShades(c, TT, halluc);
     if (halluc > 0 && mode === 'play' && Math.random() < dt * halluc * .4) noise(.6, .02 * halluc, rnd(300, 900));
     const sdt = dt * (mut === 'hyper' ? 1.45 : 1) * (twx ? twx.speed : 1);
@@ -2402,11 +2538,11 @@ function frame(now) {
     drawTwisted(c);
     drawParts(c, dt);
     drawTwistOverlays(c);
-  } else if (mode !== 'day') {
+  } else if (mode !== 'day' && mode !== 'cut') {
     render3D(c, CHARS.ashe, TT, 180, 300, 130, 1 / LS, .9);
     drawParts(c, dt);
   }
-  if (mode !== 'day') drawLight(c);
+  if (mode !== 'day' && mode !== 'cut') drawLight(c);
   postFX(c, LW, LH);
   const d = dctx; d.setTransform(DPR, 0, 0, DPR, 0, 0); d.imageSmoothingEnabled = false;
   d.drawImage(lc, 0, 0, W, H);
