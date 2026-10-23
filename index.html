@@ -693,14 +693,18 @@ function Stir(m, kind) {
         c.fillStyle = 'rgba(217,207,184,.5)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(hx + rnd(-14, 14), hy + rnd(-7, 7), rnd(2, 5), 0, TAU); c.fill(); }
         continue;
       }
-      const rise = clamp(h.rise) * 70, grabbed = g.grab && g.grab.h === h;
       c.fillStyle = 'rgba(163,36,26,.35)'; c.beginPath(); c.ellipse(hx, hy, 24, 13, 0, 0, TAU); c.fill();
+    }
+    c.restore();
+    // arms are drawn outside the pot's clip so they rise above the rim instead of vanishing behind it
+    for (const h of g.hands) {
+      if (h.warn > 0) continue;
+      const [hx, hy] = potXY(h.a, h.r), rise = clamp(h.rise) * 70, grabbed = g.grab && g.grab.h === h;
       c.fillStyle = '#9a8a7c'; c.fillRect(hx - 10, hy - rise, 20, rise);
       c.beginPath(); c.ellipse(hx, hy - rise, 16, 13, 0, 0, TAU); c.fill();
       for (let f = 0; f < 4; f++) { const fx = hx - 12 + f * 8, curl = grabbed ? 4 : 14 + Math.sin(t * 5 + f) * 3; c.fillRect(fx - 2.5, hy - rise - curl - 8, 5, curl); }
       c.fillStyle = '#3a1612'; c.fillRect(hx - 12, hy - 4, 24, 6);
     }
-    c.restore();
     c.strokeStyle = g.wrong > 0 ? '#8e1b12' : 'rgba(217,207,184,.3)'; c.lineWidth = 4;
     for (let k = 0; k < 3; k++) { const a0 = k * TAU / 3 + t * g.dir * .8, a1 = a0 + .7 * g.dir, rr = R + 50; c.beginPath(); c.ellipse(cx, cy, rr, rr * .55, 0, Math.min(a0, a1), Math.max(a0, a1)); c.stroke(); }
     // heat gauge: fills while you stir briskly, boils over at the top line
@@ -735,7 +739,6 @@ function Fill(m, kind) {
     g.now += dt; g.msgT -= dt;
     const md = g.molds[g.i]; if (!md) return;
     g.press = clamp(.75 + .35 * Math.sin(g.now * 1.7) * Math.sin(g.now * .63 + 1) + .2 * Math.sin(g.now * 4.1), .35, 1.4);
-    if (g.i === 2) md.target = md.base + Math.sin(g.now * 1.2) * .06;
     if (g.phase === 'wait') { g.wait -= dt; if (g.wait <= 0) { g.phase = 'active'; g.idle = 0; } return; }
     if (g.phase === 'gap') { g.wait -= dt; if (g.wait <= 0) { g.i++; g.phase = 'wait'; g.wait = .6; g.flow = 0; } return; }
     const on = pouring();
@@ -968,7 +971,7 @@ function Harvest(m) {
 
 // THE THING FROM THE WELL: single lines, double lines, long brackets to hold through. It surges, it pulls back, and a hand comes up onto the board.
 function Chop() {
-  const g = { dur: 28, now: 0, off: 860, spd: 0, marks: [], holds: [], whiffs: 0, handHits: 0, knife: 0, len: 0, pull: 0, pullWarn: 0, pullT: rnd(3, 5), hand: null, handT: rnd(3, 5), sawT: 0 };
+  const g = { dur: 28, now: 0, off: 860, spd: 0, marks: [], holds: [], whiffs: 0, handHits: 0, knife: 0, len: 0, pull: 0, pullWarn: 0, pullT: rnd(3, 5), hand: null, handT: rnd(6, 8), sawT: 0 };
   let x = 160;
   while (x < 1900) {
     const r = Math.random();
@@ -998,7 +1001,7 @@ function Chop() {
       }
     }
     g.handT -= dt;
-    if (!g.hand && g.handT <= 0) { g.hand = { k: 0, life: 1.6 }; g.handT = rnd(4, 6.5); noise(.4, .04, 600); }
+    if (!g.hand && g.handT <= 0) { g.hand = { k: 0, life: 1.2 }; g.handT = rnd(8, 11); noise(.4, .04, 600); }
     if (g.hand) { g.hand.life -= dt; g.hand.k = g.hand.life > .3 ? Math.min(1, g.hand.k + dt * 1.7) : Math.max(0, g.hand.k - dt * 4); if (g.hand.life <= 0) g.hand = null; }
   };
   g.down = () => {
@@ -1021,7 +1024,7 @@ function Chop() {
   g.done = () => g.marks.every(mk => mk.hit || mk.gone) && g.holds.every(h => h.state === 'done' || h.state === 'missed');
   g.score = () => {
     const tot = g.marks.length + g.holds.length * 2, got = g.marks.reduce((s, mk) => s + mk.q, 0) + g.holds.reduce((s, h) => s + (h.state === 'done' ? h.q * 2 : 0), 0);
-    return clamp(got / tot * 100 - g.whiffs * 4 - g.handHits * 20, 0, 100);
+    return clamp(got / tot * 100 - g.whiffs * 4 - g.handHits * 12, 0, 100);
   };
   const yAt = (s, t) => 335 + Math.sin(s * .025 + t * 3) * 10 + (g.pullWarn > 0 ? rnd(-3, 3) : 0);
   const rAt = s => 34 * (1 - s / g.len * .65);
@@ -1052,16 +1055,17 @@ function Chop() {
     }
     c.setLineDash([]);
     for (const hd of g.holds) { const mid = g.off + (hd.x0 + hd.x1) / 2; if ((hd.state === 'wait' || hd.state === 'active') && mid > -40 && mid < W + 40) T(hd.state === 'active' ? 'hold…' : 'HOLD', mid, 278, 22, hd.state === 'active' ? '#fff6dc' : '#d9cfb8'); }
-    if (g.hand && g.hand.k > .2) T('NOT THE HAND', KX, 448, 30, '#a3241a');
     for (const hd of g.holds) {
       if (hd.state === 'done') continue;
       for (const [xx, dir] of [[hd.x0, 1], [hd.x1, -1]]) { const X = g.off + xx; if (X < -10 || X > W + 10) continue; c.strokeStyle = hd.state === 'missed' ? 'rgba(142,27,18,.7)' : '#e6dcc3'; c.lineWidth = 4; c.beginPath(); c.moveTo(X + dir * 12, 285); c.lineTo(X, 285); c.lineTo(X, 392); c.lineTo(X + dir * 12, 392); c.stroke(); }
     }
+    // only fingertips curling over the board's near edge, under the blade and below the cut lines
     if (g.hand) {
-      const k = g.hand.k, by = 470 - k * 120;
-      c.fillStyle = '#b8aa9c'; c.fillRect(KX - 22, by + 20, 44, 200);
-      c.beginPath(); c.ellipse(KX, by + 20, 30, 22, 0, 0, TAU); c.fill();
-      for (let f = 0; f < 4; f++) { const fx = KX - 20 + f * 13; c.fillRect(fx - 4, by - 28 + Math.abs(f - 1.5) * 6 + Math.sin(t * 8 + f) * 3, 8, 36); c.fillStyle = '#5a4a40'; c.fillRect(fx - 4, by - 30 + Math.abs(f - 1.5) * 6 + Math.sin(t * 8 + f) * 3, 8, 6); c.fillStyle = '#b8aa9c'; }
+      const top = 434 - g.hand.k * 40;
+      for (let f = 0; f < 4; f++) {
+        const fx = KX - 18 + f * 12, fy = top + Math.abs(f - 1.5) * 4 + Math.sin(t * 8 + f) * 2;
+        c.fillStyle = '#b8aa9c'; c.fillRect(fx - 4, fy, 8, 452 - fy); c.fillStyle = '#5a4a40'; c.fillRect(fx - 4, fy, 8, 4);
+      }
     }
     c.strokeStyle = 'rgba(230,220,195,.2)'; c.lineWidth = 2; c.beginPath(); c.moveTo(KX, 240); c.lineTo(KX, 420); c.stroke();
     const by = 160 + g.knife * 120;
@@ -1603,7 +1607,7 @@ const DAY_ACTS = {
   lamp: () => { bump('mind', 8 + L.up.lamp * 3); return 'The flame leans toward you.'; },
   bread: () => { L.items.bread--; bump('body', 15); return 'It is stale. It is enough.'; },
   laud: () => { L.items.laudanum--; bump('mind', 25); bump('body', -5); return 'The walls stop breathing for a while.'; },
-  sharp: () => { L.sharp = true; return 'The edge comes up bright.'; }
+  sharp: () => { L.sharp = true; return 'The edge comes up bright. Tonight, every step below gives you a little more time.'; }
 };
 const dock = inner => `<div class="card dock"><div class="txt">${inner}</div></div>`;
 const TOOTH = '<svg class="tooth" viewBox="0 0 12 14" aria-hidden="true"><path d="M2.2 1C4 .2 4.8 1.4 6 1.4S8 .2 9.8 1c2 .9 1.6 3.9 1 5.6-.7 2-1 6.4-2.2 6.4-1.1 0-1.2-4-2.6-4s-1.5 4-2.6 4C2.2 13 1.9 8.6 1.2 6.6.6 4.9.2 1.9 2.2 1z" fill="currentColor"/></svg>';
@@ -1616,6 +1620,13 @@ function statsHTML() {
 }
 const dayHead = (label, value, right = '') => `<div class="dayhead"><div class="num"><small>${label}</small>${value}</div>${right}</div>`;
 const hoursHTML = h => `<div class="hours" aria-label="${h} ${h === 1 ? 'hour' : 'hours'} of light left">${[0, 1].map(i => `<i class="${i < h ? 'lit' : ''}"></i>`).join('')}</div>`;
+// Begin again: forget everything this browser remembers (the life, the candles on every dish) and start from the first morning
+function wipeAll() {
+  for (const k of ['gristle-life', 'gristle-best']) { try { localStorage.removeItem(k); } catch (e) {} }
+  best = {}; L = null; run = null; cut = null; parts = []; mut = null; twx = null; game = null;
+  labBook = 1000 + Math.floor(Math.random() * 9000);
+  newLife();
+}
 function newLife() {
   L = NEW_LIFE(); saveLife();
   cutscene('wake', () => { mode = 'day'; show(dock(`${dayHead('Day', 1)}<p class="omen big">You wake in a room above a kitchen. You do not know how you got here.</p><p class="omen">When the light goes, the stairs will want you.</p><div class="go"><button id="go" type="button">Get up</button></div>`), n => n.querySelector('#go').onclick = () => dayPanel(), true); });
@@ -1638,7 +1649,7 @@ function dayPanel(msg) {
       ${A('lamp', 'Sit by the light', 'mind')}
       ${A('bread', 'Eat bread', 'body', L.items.bread > 0)}
       ${A('laud', 'Take laudanum', 'mind', L.items.laudanum > 0)}
-      ${A('sharp', 'Sharpen the knives', 'tonight', !L.sharp)}
+      ${A('sharp', 'Sharpen the knives', L.sharp ? 'already sharp' : 'more time tonight', !L.sharp)}
       ${A('look', 'Look around', '?')}
     </div></div>
     <div class="go"><button id="down" type="button">Go down</button>
@@ -1708,7 +1719,7 @@ function afterNight() {
 function ending() {
   const d = L.day; try { localStorage.removeItem('gristle-life'); } catch (e) {} L = null; mode = 'idle';
   sBad();
-  show(`<div class="card solo"><div class="txt" style="justify-items:center"><span class="eyebrow">Day ${d}</span><h2>The stairs</h2><p class="omen">You go down one more time, and keep going.</p><div class="btns"><button id="go" type="button">Begin again</button></div></div></div>`, n => n.querySelector('#go').onclick = newLife);
+  show(`<div class="card solo"><div class="txt" style="justify-items:center"><span class="eyebrow">Day ${d}</span><h2>The stairs</h2><p class="omen">You go down one more time, and keep going.</p><div class="btns"><button id="go" type="button">Begin again</button></div></div></div>`, n => n.querySelector('#go').onclick = wipeAll);
   closeup('many', 'Come down. Come down. Come all the way down.');
 }
 
@@ -1825,8 +1836,11 @@ function drawStairs(c, t, p, up, open) {
     poly([[-1, yN, zEnd], [1, yN, zEnd], [1, yN + 2.4, zEnd], [-1, yN + 2.4, zEnd]], '#05070c');
     if (open > 0) poly([[-.2, yN, zEnd + .01], [.15, yN, zEnd + .01], [.15, yN + 2.4, zEnd + .01], [-.2, yN + 2.4, zEnd + .01]], `rgba(120,140,170,${open * .5})`);
     const w = 2 * (1 - open * .85);
-    poly([[-1, yN, zEnd - .01], [-1 + w, yN, zEnd - .01], [-1 + w, yN + 2.4, zEnd - .01], [-1, yN + 2.4, zEnd - .01]], lit([70, 50, 36], zEnd));
-    if (open < .3) { const [hx, hy] = P(.7, yN + 1.1, zEnd - .02); c.fillStyle = '#6b6152'; c.beginPath(); c.arc(hx, hy, 3 * f / Math.max(.5, zEnd - camZ) / 20, 0, TAU); c.fill(); c.fillStyle = 'rgba(200,180,140,.5)'; const [lx, ly] = P(-1, yN + .02, zEnd - .02), [rx] = P(1, yN, zEnd); c.fillRect(lx, ly - 2, rx - lx, 3); }
+    poly([[-1, yN, zEnd - .01], [-1 + w, yN, zEnd - .01], [-1 + w, yN + 2.4, zEnd - .01], [-1, yN + 2.4, zEnd - .01]], lit([70, 50, 36], zEnd, .2));
+    // the knob is fogged like the rest and only shows once you're close; a bright knob in the dark read as a stray dot
+    const dd = zEnd - camZ;
+    if (open < .3 && dd < 5) { const [hx, hy] = P(.7, yN + 1.1, zEnd - .02); c.fillStyle = lit([150, 136, 110], zEnd, .1); c.beginPath(); c.arc(hx, hy, Math.min(6, 2.5 * f / Math.max(.5, dd) / 20), 0, TAU); c.fill(); }
+    if (open < .3) { c.fillStyle = `rgba(200,180,140,${.15 + .35 * clamp(1 - dd / 8)})`; const [lx, ly] = P(-1, yN + .02, zEnd - .02), [rx] = P(1, yN, zEnd); c.fillRect(lx, ly - 2, rx - lx, 3); }
   }
   for (let k = N; k >= 0; k--) {
     const z0 = Math.max(k, camZ + .22), z1 = k + 1; if (z1 <= camZ + .22) continue;
@@ -2222,7 +2236,7 @@ function titleScreen() {
     n.querySelector('#go').onclick = () => { ac(); startDrone(); if (L) continueLife(); else newLife(); };
     n.querySelector('#lab').onclick = () => { ac(); startDrone(); labMenu(); };
     const b = n.querySelector('#anew'); let armed = false;
-    if (b) b.onclick = () => { if (!armed) { armed = true; b.querySelector('span').textContent = 'Forget everything?'; b.querySelector('small').textContent = 'again to confirm'; return; } ac(); startDrone(); newLife(); };
+    if (b) b.onclick = () => { if (!armed) { armed = true; b.querySelector('span').textContent = 'Forget everything?'; b.querySelector('small').textContent = 'again to confirm'; return; } ac(); startDrone(); wipeAll(); };
   }, 'titled');
 }
 function unlocked() { return ['root', 'eyes', 'eel'].every(id => (best[id] || 0) >= 1); }
@@ -2263,6 +2277,7 @@ function stepCard() {
   show(`<div class="card">${P(st.m ? run.guest.id : 'ashe')}<div class="txt">
     <span class="eyebrow">${run.idx + 1} / ${run.steps.length}</span>
     <h2>${info.title}</h2>${omen}<p>${info.hint}</p>
+    ${L && L.sharp && (!run.lab || run.life) ? '<span class="eyebrow">The knives are sharp · more time</span>' : ''}
     <div class="btns"><button id="go" type="button">Begin</button></div></div></div>`, n => n.querySelector('#go').onclick = beginStep);
 }
 function beginStep() {
