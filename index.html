@@ -655,6 +655,10 @@ function Peel(m) {
     c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(200, 470, 400, 8); c.fillStyle = '#d9cfb8'; c.fillRect(200, 470, 400 * clamp(pf), 8);
     if (g.stun > 0) T('thorn', ptr.x, ptr.y - 46, 26, '#a3241a');
     else if (g.deep > 0) T('too deep', ptr.x, ptr.y - 46, 26, '#a3241a');
+    g.tool(c, t);
+  };
+  // what you hold, drawn on its own so the One in the Glass can reflect it (every tool game has one)
+  g.tool = c => {
     c.save(); c.translate(ptr.x + (g.stun > 0 ? rnd(-5, 5) : 0), ptr.y + (g.stun > 0 ? rnd(-5, 5) : 0)); c.rotate(-.6);
     c.fillStyle = g.stun > 0 ? '#8e1b12' : '#6b6156'; c.fillRect(-16, -5, 32, 10); c.fillStyle = '#6b3a1e'; c.fillRect(-10, -3, 6, 4); c.fillStyle = '#2b1d14'; c.fillRect(-5, 5, 10, 40); c.restore();
   };
@@ -780,11 +784,16 @@ function Stir(m, kind) {
     T('BOIL', 68, 170, 18, g.heat > .7 ? '#a3241a' : '#8c826f');
     c.lineWidth = 10; c.strokeStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(140, 100, 30, 0, TAU); c.stroke();
     c.strokeStyle = '#8e1b12'; c.beginPath(); c.arc(140, 100, 30, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(g.prog / g.need)); c.stroke();
-    let sx = ptr.x, sy = ptr.y;
-    if (g.grab) { const [hx, hy] = potXY(g.grab.h.a, g.grab.h.r); sx = hx + rnd(-4, 4); sy = hy - 60 + rnd(-4, 4); T('shake it loose', 400, 520, 28, '#a3241a'); }
+    if (g.grab) T('shake it loose', 400, 520, 28, '#a3241a');
     else if (g.heat > .5) T('slower', 400, 520, 28, '#a3241a');
     else if (g.skin > .25) T('keep stirring', 400, 520, 28, '#c9a49a');
     else if (g.now < 3) T('hold and stir along the ring', 400, 520, 24, '#8c826f');
+    g.tool(c, t);
+  };
+  g.tool = c => {
+    // the spoon; when a hand has it, it is wherever the hand is
+    let sx = ptr.x, sy = ptr.y;
+    if (g.grab) { const [hx, hy] = potXY(g.grab.h.a, g.grab.h.r); sx = hx + rnd(-4, 4); sy = hy - 60 + rnd(-4, 4); }
     c.save(); c.strokeStyle = '#b9ad92'; c.lineWidth = 9; c.lineCap = 'round';
     c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + 50, sy - 130); c.stroke();
     c.fillStyle = '#b9ad92'; c.beginPath(); c.ellipse(sx, sy, 17, 11, -.4, 0, TAU); c.fill(); c.restore();
@@ -1028,6 +1037,9 @@ function Harvest(m) {
     }
     if (g.combo >= 4) T('×' + (1 + Math.min(1.5, Math.floor(g.combo / 4) * .5)), 90, 120, 36, '#c8b46a');
     for (const p of g.pop) T(p.s, p.x, p.y - (.7 - p.t) * 40, 28, p.col);
+    g.tool(c, t);
+  };
+  g.tool = c => {
     c.save(); c.translate(ptr.x, ptr.y); c.strokeStyle = '#5d5a55'; c.lineWidth = 6; c.lineCap = 'round';
     c.beginPath(); c.moveTo(-8, 0); c.lineTo(-20, 44); c.moveTo(8, 0); c.lineTo(20, 44); c.stroke(); c.restore();
   };
@@ -1216,13 +1228,14 @@ function Grind(m) {
     c.restore();
     for (const s of g.chips) { c.fillStyle = '#d9cfb8'; c.fillRect(s.x - 3, s.y - 2, 6, 4); }
     c.setLineDash([6, 8]); c.strokeStyle = 'rgba(217,207,184,.25)'; c.lineWidth = 2; c.beginPath(); c.moveTo(cx, cy - 120); c.lineTo(cx, cy + 110); c.stroke(); c.setLineDash([]);
-    c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.35); c.fillStyle = '#cfc3a3'; c.fillRect(-11, -150, 22, 150); c.beginPath(); c.arc(0, 0, 18, 0, TAU); c.fill(); c.fillStyle = '#9a8e74'; c.beginPath(); c.arc(0, -150, 15, 0, TAU); c.fill(); c.restore();
+    g.tool(c, t);
     c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(200, 470, 400, 8); c.fillStyle = '#d9cfb8'; c.fillRect(200, 470, 400 * k, 8);
     if (g.swell > 0 && Math.sin(t * 20) > -.3) T('STOP', cx, 190, 44, '#a3241a');
     else if (g.now < 3.5) T('drag back and forth across the line', cx, 520, 24, '#8c826f');
     if (g.pulse > 0) T(inv ? 'between' : 'on the beat', cx, 222, 22, '#d9cfb8');
     if (g.flash > 0) T(g.msg, cx, 232, 40, '#a3241a');
   };
+  g.tool = c => { c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.35); c.fillStyle = '#cfc3a3'; c.fillRect(-11, -150, 22, 150); c.beginPath(); c.arc(0, 0, 18, 0, TAU); c.fill(); c.fillStyle = '#9a8e74'; c.beginPath(); c.arc(0, -150, 15, 0, TAU); c.fill(); c.restore(); };
   return g;
 }
 
@@ -1272,10 +1285,11 @@ function Sew(m) {
       if (h.state === 'open') { c.strokeStyle = '#fff6dc'; c.lineWidth = 4; c.beginPath(); c.arc(x, y, 20, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(g.life / g.max)); c.stroke(); T(String(h.n), x, y - 28, 26, '#fff6dc'); }
       else if (h.n === g.next + 2) T(String(h.n), x, y - 28, 20, '#6b6152');
     }
-    c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.7); c.fillStyle = '#b9b4aa'; c.fillRect(-1.5, -60, 3, 60); c.strokeStyle = '#b9b4aa'; c.lineWidth = 2; c.beginPath(); c.ellipse(0, -62, 3, 6, 0, 0, TAU); c.stroke(); c.restore();
+    g.tool(c, t);
     if (g.warn > 0) T('it pushes', 400, 170, 30, '#a3241a');
     else if (g.now < 3.5) T('tap the holes in order', 400, 520, 24, '#8c826f');
   };
+  g.tool = c => { c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.7); c.fillStyle = '#b9b4aa'; c.fillRect(-1.5, -60, 3, 60); c.strokeStyle = '#b9b4aa'; c.lineWidth = 2; c.beginPath(); c.ellipse(0, -62, 3, 6, 0, 0, TAU); c.stroke(); c.restore(); };
   return g;
 }
 
@@ -1329,10 +1343,11 @@ function Season(m) {
     }
     c.restore();
     c.fillStyle = '#efe8da'; for (const gr of g.grains) c.fillRect(gr.x - 1.5, gr.y - 1.5, 3, 3);
-    c.save(); c.translate(ptr.x, ptr.y); c.rotate(Math.PI + (ptr.down ? Math.sin(t * 30) * .15 : 0)); c.fillStyle = '#8c877e'; c.fillRect(-14, -50, 28, 46); c.fillStyle = '#5d5a55'; c.fillRect(-15, -8, 30, 12); c.restore();
+    g.tool(c, t);
     if (g.burnMsg > 0 && !inv) T('not the eyes', 400, 150, 30, '#a3241a');
     else if (g.now < 3.5) T('hold to salt', 400, 520, 24, '#8c826f');
   };
+  g.tool = (c, t) => { c.save(); c.translate(ptr.x, ptr.y); c.rotate(Math.PI + (ptr.down ? Math.sin(t * 30) * .15 : 0)); c.fillStyle = '#8c877e'; c.fillRect(-14, -50, 28, 46); c.fillStyle = '#5d5a55'; c.fillRect(-15, -8, 30, 12); c.restore(); };
   return g;
 }
 
@@ -1385,8 +1400,9 @@ function Trace(m) {
     if (!ptr.down) { c.strokeStyle = `rgba(255,246,220,${.5 + .4 * Math.sin(t * 6)})`; c.lineWidth = 4; c.beginPath(); c.arc(sx, sy, 18, 0, TAU); c.stroke(); T(g.pi ? 'resume here' : 'start here', sx, sy - 28, 22, '#fff6dc'); }
     T(`${g.si + 1} / 2`, 690, 90, 26, '#8c826f');
     if (g.strayMsg > 0) T('stray', ptr.x, ptr.y - 40, 26, '#a3241a');
-    c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.8); c.fillStyle = '#8c877e'; c.beginPath(); c.moveTo(0, 0); c.lineTo(6, -60); c.lineTo(-4, -60); c.closePath(); c.fill(); c.fillStyle = '#1e140e'; c.fillRect(-5, -100, 10, 40); c.restore();
+    g.tool(c, t);
   };
+  g.tool = c => { c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.8); c.fillStyle = '#8c877e'; c.beginPath(); c.moveTo(0, 0); c.lineTo(6, -60); c.lineTo(-4, -60); c.closePath(); c.fill(); c.fillStyle = '#1e140e'; c.fillRect(-5, -100, 10, 40); c.restore(); };
   return g;
 }
 
@@ -1433,11 +1449,14 @@ function Catch(m) {
       c.fillStyle = col; c.beginPath(); c.moveTo(d.x, d.y - s * 2); c.quadraticCurveTo(d.x + s, d.y, d.x, d.y + s); c.quadraticCurveTo(d.x - s, d.y, d.x, d.y - s * 2); c.fill();
       c.fillStyle = d.bile ? 'rgba(120,160,90,.5)' : 'rgba(255,240,200,.7)'; c.beginPath(); c.arc(d.x - s * .3, d.y - s * .2, s * .25, 0, TAU); c.fill();
     }
+    g.tool(c, t);
+    if (g.msgT > 0) T(g.msg, g.pan, 410, 30, '#a3241a');
+    else if (g.now < 3.5) T('move the pan', 400, 520, 24, '#8c826f');
+  };
+  g.tool = c => {
     c.fillStyle = '#1e1c1a'; c.beginPath(); c.ellipse(g.pan, 452, 66, 16, 0, 0, TAU); c.fill(); c.fillRect(g.pan + 60, 446, 80, 10);
     c.fillStyle = '#3a3630'; c.beginPath(); c.ellipse(g.pan, 448, 60, 12, 0, 0, TAU); c.fill();
     if (g.level > 0) { c.fillStyle = '#c88a2a'; c.beginPath(); c.ellipse(g.pan, 449, 56 * Math.sqrt(g.level), 10 * Math.sqrt(g.level), 0, 0, TAU); c.fill(); }
-    if (g.msgT > 0) T(g.msg, g.pan, 410, 30, '#a3241a');
-    else if (g.now < 3.5) T('move the pan', 400, 520, 24, '#8c826f');
   };
   return g;
 }
@@ -1487,17 +1506,18 @@ function Skim(m) {
     c.restore();
     c.lineWidth = 10; c.strokeStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.arc(140, 100, 30, 0, TAU); c.stroke();
     c.strokeStyle = '#8e1b12'; c.beginPath(); c.arc(140, 100, 30, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(g.clean / g.need)); c.stroke();
-    c.save(); c.strokeStyle = '#6b6152'; c.lineWidth = 7; c.beginPath(); c.moveTo(ptr.x + 20, ptr.y - 6); c.lineTo(ptr.x + 120, ptr.y - 130); c.stroke(); c.fillStyle = '#5d5a55'; c.beginPath(); c.ellipse(ptr.x, ptr.y, 26, 14, 0, 0, TAU); c.fill(); c.fillStyle = '#2a2622'; c.beginPath(); c.ellipse(ptr.x, ptr.y - 2, 20, 9, 0, 0, TAU); c.fill(); c.restore();
+    g.tool(c, t);
     if (g.face && !g.face.warn && !inv) { const [fx, fy] = xy(g.face.a, g.face.r); T('leave it', fx, fy - 46, 26, '#a3241a'); }
     else if (g.now < 3.5) T('hold and drag the ladle', 400, 520, 24, '#8c826f');
   };
+  g.tool = c => { c.save(); c.strokeStyle = '#6b6152'; c.lineWidth = 7; c.beginPath(); c.moveTo(ptr.x + 20, ptr.y - 6); c.lineTo(ptr.x + 120, ptr.y - 130); c.stroke(); c.fillStyle = '#5d5a55'; c.beginPath(); c.ellipse(ptr.x, ptr.y, 26, 14, 0, 0, TAU); c.fill(); c.fillStyle = '#2a2622'; c.beginPath(); c.ellipse(ptr.x, ptr.y - 2, 20, 9, 0, 0, TAU); c.fill(); c.restore(); };
   return g;
 }
 
 /* ---------- your hand: the in-game cursor ----------
    A pale hand stands in for the pointer everywhere on the stage. It shakes with a tired body, drifts with a worn
    mind (and below 30 Mind it sometimes moves on its own), guests leave marks on it, and it gets bloody overnight. */
-const HAND = { fit: null, fitT: rnd(10, 16), trail: [] };
+const HAND = { fit: null, fitT: rnd(10, 16), out: false };
 function handShape(c, s = 1) {
   c.save(); c.scale(s, s);
   c.fillStyle = '#b8aa9c';
@@ -1507,8 +1527,9 @@ function handShape(c, s = 1) {
   c.fillStyle = '#7a6a5e'; for (let k = 0; k < 4; k++) c.fillRect(-4 + k * 4.2, -9 - (k === 1 ? 2 : 0), 2.4, 2);
   c.restore();
 }
+// every hand is drawn with its fingertips, not its palm, on the point it is touching
 function drawHand(c, x, y, s = 1.4, alpha = 1, mirrored = false) {
-  c.save(); c.globalAlpha = alpha; c.translate(x, y); if (mirrored) c.scale(-1, 1);
+  c.save(); c.globalAlpha = alpha; c.translate(x, y + 13.5 * s); if (mirrored) c.scale(-1, 1);
   handShape(c, s);
   const b = L ? L.handBlood || 0 : 0;
   if (b > 0) { c.fillStyle = `rgba(110,14,10,${Math.min(.9, b)})`; for (const [bx, by, br] of [[3, 12, 6], [-3, -6, 3], [7, 3, 3], [-6, 14, 2.5]]) { c.beginPath(); c.arc(bx * s, by * s, br * s * (.5 + b * .5), 0, TAU); c.fill(); } }
@@ -1526,19 +1547,16 @@ function handFx(dt) {
   if (mode === 'play') { ox += pres.pull.x; oy += pres.pull.y; }
   return [ox, oy];
 }
+// one hand only, with one exception: the One in the Glass shows you a reflection of whatever you are holding
+// (the tool in a tool game, the hand otherwise), faint, on the far side of the screen and facing the other way
 function drawCursor(c) {
-  // drawn so the fingertips, not the palm, sit on the point you are actually touching
-  c.save(); c.translate(0, 19);
-  drawCursorAt(c);
-  c.restore();
-}
-function drawCursorAt(c) {
-  HAND.trail.push([ptr.x, ptr.y]); if (HAND.trail.length > 40) HAND.trail.shift();
   const night = game && (mode === 'play' || mode === 'ready' || mode === 'end'), role = night && run && run.guest ? run.guest.id : null;
-  const back = k => HAND.trail[Math.max(0, HAND.trail.length - 1 - k)];
-  if (role === 'glass') drawHand(c, W - ptr.x, ptr.y, 1.4, .28, true);
-  if (role === 'many') for (const k of [10, 22]) { const [x, y] = back(k); drawHand(c, x, y, 1.4, .22); }
-  if (role === 'tick' && Math.sin(TT * 5) > .55) { const [x, y] = back(8); drawHand(c, x, y, 1.4, .35); }
+  if (role === 'glass' && mode === 'play') {
+    c.save(); c.translate(W, 0); c.scale(-1, 1); c.globalAlpha = .3;
+    if (!game.ownCursor) drawHand(c, ptr.x, ptr.y, 1.4, .3);
+    else if (game.tool) game.tool(c, TT);
+    c.restore();
+  }
   if (role === 'moth') for (let i = 0; i < 2; i++) { const a = TT * (3 + i) + i * 3, x = ptr.x + Math.cos(a) * 26, y = ptr.y + Math.sin(a * 1.3) * 18, fl = Math.abs(Math.sin(TT * 24 + i)) * 5 + 1; c.fillStyle = 'rgba(190,176,146,.7)'; c.beginPath(); c.moveTo(x, y); c.lineTo(x - fl - 3, y - 4); c.lineTo(x - 2, y + 3); c.moveTo(x, y); c.lineTo(x + fl + 3, y - 4); c.lineTo(x + 2, y + 3); c.fill(); }
   if (role === 'groom') { const p = (TT * 1.4) % 1; c.fillStyle = `rgba(170,210,200,${(.8 * (1 - p)).toFixed(2)})`; c.beginPath(); c.ellipse(ptr.x + 4, ptr.y + 20 + p * 60, 2, 3 + p * 2, 0, 0, TAU); c.fill(); }
   if (!(night && game.ownCursor)) drawHand(c, ptr.x, ptr.y);
@@ -1820,9 +1838,10 @@ function Dig() {
     }
     for (const s of g.soil) if (s.on) { c.fillStyle = `rgb(${58 + s.shade | 0},${42 + s.shade | 0},${30 + s.shade | 0})`; c.fillRect(s.x, s.y, CS, CS); }
     for (const th of g.things) if (th.state === 'loose') { c.strokeStyle = '#fff6dc'; c.lineWidth = 3; c.beginPath(); c.arc(th.x, th.y, 36, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(th.t / 1.8)); c.stroke(); }
-    c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.5); c.fillStyle = '#5d5a55'; c.beginPath(); c.moveTo(-12, 0); c.lineTo(12, 0); c.lineTo(8, 22); c.lineTo(-8, 22); c.fill(); c.fillStyle = '#2b1d14'; c.fillRect(-3, -70, 6, 70); c.restore();
+    g.tool(c, t);
     if (g.now < 3.5) T('drag to dig. grab what squirms', 400, 520, 24, '#8c826f');
   };
+  g.tool = c => { c.save(); c.translate(ptr.x, ptr.y); c.rotate(-.5); c.fillStyle = '#5d5a55'; c.beginPath(); c.moveTo(-12, 0); c.lineTo(12, 0); c.lineTo(8, 22); c.lineTo(-8, 22); c.fill(); c.fillStyle = '#2b1d14'; c.fillRect(-3, -70, 6, 70); c.restore(); };
   return g;
 }
 
@@ -1859,9 +1878,12 @@ function Lantern() {
       if (rp2) { c.strokeStyle = 'rgba(232,200,120,.6)'; c.lineWidth = 3; c.beginPath(); c.arc(s.x, s.y, 30, 0, TAU); c.stroke(); }
     }
     const lg = c.createRadialGradient(ptr.x, ptr.y, 40, ptr.x, ptr.y, 150); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,.97)'); c.fillStyle = lg; c.fillRect(-40, -40, W + 80, H + 80);
-    drawHand(c, ptr.x + 6, ptr.y + 8);
-    c.fillStyle = '#cfc3a3'; c.fillRect(ptr.x - 4, ptr.y - 8, 8, 16); flame(c, ptr.x, ptr.y - 8, 9, t);
+    g.tool(c, t);
     if (g.now < 3.5) T('pick what is ripe', 400, 520, 24, '#8c826f');
+  };
+  g.tool = (c, t) => {
+    drawHand(c, ptr.x + 6, ptr.y - 11); // the hand holds the lamp, so its palm (not its fingertips) is at the light
+    c.fillStyle = '#cfc3a3'; c.fillRect(ptr.x - 4, ptr.y - 8, 8, 16); flame(c, ptr.x, ptr.y - 8, 9, t);
   };
   return g;
 }
@@ -2082,7 +2104,7 @@ function Fish() {
       if (f.face > 0) { c.globalAlpha = f.face; c.fillStyle = '#b8aa9c'; c.beginPath(); c.ellipse(f.x, f.y, 26, 20, 0, 0, TAU); c.fill(); c.fillStyle = '#050404'; c.beginPath(); c.arc(f.x - 9, f.y - 4, 4, 0, TAU); c.arc(f.x + 9, f.y - 4, 4, 0, TAU); c.fill(); c.globalAlpha = 1; }
       c.strokeStyle = tn > .85 ? '#a3241a' : `rgba(230,220,195,${.4 + tn * .5})`; c.lineWidth = 1 + tn * 2;
       c.beginPath(); c.moveTo(C.x, C.y); c.quadraticCurveTo((C.x + f.x) / 2, (C.y + f.y) / 2 + (1 - tn) * 60, f.x, f.y); c.stroke();
-      if (!g.under) { drawHand(c, C.x, C.y, 1.5); if (Math.hypot(g.off.x, g.off.y) > 12) drawHand(c, ptr.x, ptr.y, 1.4, .18); }
+      if (!g.under) drawHand(c, C.x, C.y, 1.5);
       else for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(200,220,220,.5)'; c.beginPath(); c.arc(f.x + rnd(-20, 20), f.y + rnd(-14, 14), rnd(2, 5), 0, TAU); c.fill(); }
       c.fillStyle = '#0b0908'; c.fillRect(712, 150, 22, 260); c.fillStyle = 'rgba(217,207,184,.3)'; c.fillRect(712, 410 - 260 * .85, 22, 260 * .55);
       c.fillStyle = tn > .85 ? '#a3241a' : '#e6dcc3'; c.fillRect(706, 410 - 260 * tn - 3, 34, 6);
@@ -3954,10 +3976,14 @@ function frame(now) {
   if (mode !== 'day' && mode !== 'cut') drawLight(c);
   // the guest's doings sit above the lamp's dark, or they would vanish at the edges where they happen
   if (game && mode === 'play') { drawPres(c); drawRuleTop(c); }
-  if (handOn.matches) {
-    hctx.setTransform(1, 0, 0, 1, 0, 0); hctx.clearRect(0, 0, LW, LH);
-    if (mode !== 'cut' && !HAND.out) { hctx.setTransform(LS, 0, 0, LS, 0, 0); drawCursor(hctx); }
-  } else if (mode !== 'cut') drawCursor(c);
+  // in play the hand belongs to the picture (lit, graded, dithered with it); only when a menu or close-up is up
+  // does it move to the layer above them, so it is never in two places at once
+  const handTop = handOn.matches && (!ov.hidden || !!cu);
+  hctx.setTransform(1, 0, 0, 1, 0, 0); hctx.clearRect(0, 0, LW, LH);
+  if (mode !== 'cut' && !(handOn.matches && HAND.out)) {
+    if (handTop) { hctx.setTransform(LS, 0, 0, LS, 0, 0); drawCursor(hctx); }
+    else drawCursor(c);
+  }
   postFX(c, LW, LH, 16, twx && (twx.hue || twx.sat !== 1) && mode !== 'cut' ? (twx.mat || (twx.mat = hueMatrix(twx.hue, twx.sat))) : null);
   const d = dctx; d.setTransform(DPR, 0, 0, DPR, 0, 0); d.imageSmoothingEnabled = false;
   d.drawImage(lc, 0, 0, W, H);
