@@ -115,10 +115,35 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .dish[disabled] { opacity: .4; cursor: not-allowed; }
 .dish .steps { font-family: var(--pix); font-size: 15px; line-height: 1.25; color: var(--dim); }
 .dish .rating { color: #a3241a; letter-spacing: 3px; }
-.needs { display: flex; flex-wrap: wrap; gap: 4px; }
-.needs i { font-style: normal; font-family: var(--pix); font-size: 14px; padding: 0 .4em; border: 1px dashed var(--edge); color: #6b6152; }
-.needs i.have { border-style: solid; border-color: #6b6152; color: var(--bone); }
-.kept.pantry span { border-style: dashed; }
+/* what a dish needs, on the menu: the two ingredients, lit when they are on the shelf */
+.needs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.needs i { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-family: var(--pix); font-size: 14px; padding: 0 .4em 0 0; border: 1px dashed var(--edge); color: #6b6152; }
+.needs i img { width: 22px; height: 22px; image-rendering: pixelated; opacity: .35; filter: grayscale(1); }
+.needs i.have { border-style: solid; border-color: #8c826f; color: var(--bone); }
+.needs i.have img { opacity: 1; filter: none; }
+.needs b { font-family: var(--pix); font-weight: 400; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: #9da35a; }
+.dish.ready { border-color: #8c826f; box-shadow: 0 0 0 1px #6b6152, 0 0 18px rgba(157,163,90,.18); }
+/* a jar: its picture, its name under it, and pips for how good it is */
+.jar { position: relative; display: inline-grid; justify-items: center; gap: 2px; width: 58px; }
+.jar img { width: 44px; height: 44px; image-rendering: pixelated; }
+.jar em { font-style: normal; font-family: var(--pix); font-size: 13px; line-height: 1; color: var(--dim); text-align: center; }
+.jar::after { content: ''; height: 4px; width: 22px; background: radial-gradient(circle, #d9cfb8 1.6px, transparent 2px) 0 0 / 8px 4px repeat-x; }
+.jar.q0::after { width: 6px; } .jar.q1::after { width: 14px; } .jar.q2::after { width: 22px; background-image: radial-gradient(circle, #e8c860 1.6px, transparent 2px); }
+.jar.old img { filter: brightness(.5) sepia(.6); } .jar.old em::after { content: ' · going soft'; color: #a3241a; }
+.jar.empty { width: 44px; height: 44px; border: 1px dashed #3a3128; border-radius: 50%; margin: 0 7px 18px; }
+.jar.empty::after { display: none; }
+.shelf { display: flex; flex-wrap: wrap; gap: 6px 4px; padding: 6px 0; border-bottom: 3px solid #2a221b; }
+.shelf.small .jar { width: 40px; } .shelf.small .jar img { width: 30px; height: 30px; } .shelf.small .jar em { display: none; } .shelf.small .jar.empty { width: 30px; height: 30px; margin: 0 5px 6px; }
+.finds { display: flex; gap: 2px; margin-top: 4px; }
+.jar.mini { width: 34px; } .jar.mini img { width: 30px; height: 30px; } .jar.mini::after { display: none; }
+.jar.want img { border-radius: 50%; box-shadow: 0 0 0 2px #9da35a, 0 0 10px rgba(157,163,90,.6); }
+/* the guest card: what each jar does for tonight */
+.uses { display: grid; gap: 4px; }
+.use { display: flex; align-items: center; gap: 8px; text-align: left; }
+.use > span:last-child { display: grid; }
+.use b { font-family: var(--pix); font-weight: 400; font-size: 16px; color: var(--bone); }
+.use i { font-style: normal; font-family: var(--pix); font-size: 14px; color: #9da35a; }
+.use.none i { color: #c9a49a; }
 .dish .pay { font-family: var(--pix); font-size: 15px; color: #c9a49a; }
 .bookhow { font-size: clamp(13px, 1.8cqw, 15px); color: var(--dim); max-width: 62ch; }
 #seed { width: 6.5em; font-family: var(--pix); font-size: 20px; background: #0d0b09; color: var(--bone); border: 1px solid var(--edge); padding: .1em .4em; }
@@ -1798,14 +1823,38 @@ function drawPres(c) {
 /* ---------- gathering: what you bring in at dusk ----------
    Five small games at places around the house, and fishing at the well. Each one's yields() is what it brought back. */
 function qualFor(s) { const v = s + rnd(-12, 12); return v >= 80 ? 2 : v >= 50 ? 1 : 0; }
-// you can only carry four back. rarer things first, then one of each kind before doubles
-const CARRY = 4, RARE = { hand: 0, relics: 1, yolk: 1, bile: 1, lamprey: 1, tongues: 2 };
-const keptYields = g => () => {
-  const s = g.score(), seen = {}, order = g.got.map((id, i) => ({ id, i, r: RARE[id] ?? 3 })).sort((a, b) => a.r - b.r || a.i - b.i);
-  const pick = []; for (const pass of [0, 1]) for (const o of order) if (pick.length < CARRY && !o.taken && (pass || !seen[o.id])) { o.taken = seen[o.id] = 1; pick.push(o.id); }
-  g.dropped = g.got.length - pick.length;
-  return pick.map(id => ({ id, q: qualFor(s) }));
-};
+// a trip fills a basket of three jars. what you pick up goes toward whole jars: two roots make a jar of root,
+// three eyes a jar of eyes; a rare thing fills one by itself, and a catch from the well is a jar on its own.
+// when the basket is full you go back, so nothing you do is wasted.
+const CARRY = 3, PER_JAR = { root: 3, bones: 3, relics: 1, eyes: 3, caps: 3, silk: 2, yolk: 1, milk: 1, bile: 1, fruit: 2, tongues: 2 };
+function basket(g) {
+  const count = {}, jars = []; let next = null;
+  for (const it of g.got) {
+    if (jars.length >= CARRY) break;
+    if (it.id) { jars.push({ id: it.id, q: it.q }); continue; }
+    count[it] = (count[it] || 0) + 1;
+    if (count[it] >= (PER_JAR[it] || 1)) { count[it] = 0; jars.push({ id: it }); }
+  }
+  // the jar you are partway to filling
+  if (jars.length < CARRY) for (const id in count) { const k = count[id] / (PER_JAR[id] || 1); if (k > 0 && (!next || k > next.k)) next = { id, k }; }
+  return { jars, next };
+}
+const keptYields = g => () => { const s = g.score(); return basket(g).jars.map(j => ({ id: j.id, q: j.q ?? qualFor(s) })); };
+// the basket, drawn over a gathering game: three slots that fill with what you will bring back
+let basketN = 0;
+function drawBasket(c) {
+  const { jars, next } = basket(game);
+  if (jars.length > basketN && mode === 'play') { tone(520 + jars.length * 90, .25, 'sine', .06, 40); burst(400 + (jars.length - 2) * 64, 78, '#e6dcc3', 10, 90); }
+  basketN = jars.length;
+  for (let i = 0; i < CARRY; i++) {
+    const x = 400 + (i - 1) * 64, y = 78, j = jars[i];
+    c.fillStyle = 'rgba(0,0,0,.55)'; c.beginPath(); c.arc(x, y, 27, 0, TAU); c.fill();
+    c.strokeStyle = j ? '#d9cfb8' : '#4a4238'; c.lineWidth = 2; c.stroke();
+    if (j) c.drawImage(ingIcon(j.id), x - 22, y - 22, 44, 44);
+    else if (next && i === jars.length) { c.globalAlpha = .35; c.drawImage(ingIcon(next.id), x - 22, y - 22, 44, 44); c.globalAlpha = 1; c.strokeStyle = '#d9cfb8'; c.lineWidth = 4; c.beginPath(); c.arc(x, y, 27, -Math.PI / 2, -Math.PI / 2 + TAU * next.k); c.stroke(); }
+  }
+  if (jars.length >= CARRY) T('your basket is full', 400, 126, 22, '#d9cfb8');
+}
 
 // THE CHURCHYARD: dig through the soil. Whatever is uncovered starts to squirm; grab it before it burrows away.
 function Dig() {
@@ -1960,7 +2009,7 @@ function Web() {
 
 // THE HUTCH: something large breathes in the dark. Squeeze while it breathes out; let go as it breathes in, or it bites.
 function Milk() {
-  const g = { dur: 15, now: 0, ph: 0, period: 2.4, fill: 0, got: [], bites: 0, cd: 0, perfect: 0 };
+  const g = { dur: 21, now: 0, ph: 0, period: 2.4, fill: 0, got: [], bites: 0, cd: 0, perfect: 0 };
   const exhaling = () => Math.cos(g.ph) < 0;
   g.update = dt => {
     g.now += dt; g.cd = Math.max(0, g.cd - dt);
@@ -2138,7 +2187,7 @@ function Fish() {
     if (g.prog >= 1) { g.phase = 'land'; g.landT = 1.3; tone(260, .4, 'sine', .07, 120); noise(.4, .08, 500); shake = Math.max(shake, 5); }
   };
   g.score = () => clamp(g.got.length / 2) * 100;
-  g.yields = () => { g.dropped = Math.max(0, g.got.length - CARRY); return g.got.slice().sort((a, b) => b.q - a.q).slice(0, CARRY).map(o => ({ id: o.id, q: o.q })); };
+  g.yields = keptYields(g);
   // the thing on the line, seen through the water: dim and small when deep, pale and large as it comes up
   function drawCatch(c, f, t) {
     const depth = g.phase === 'land' ? 1 : clamp(.15 + g.prog * .75 + (f.mode === 'tire' ? .08 : 0)), a = .25 + .65 * depth, sc = .75 + .5 * depth;
@@ -2461,9 +2510,10 @@ const DAY_ACTS = {
   sharp: () => { L.sharp = true; return 'The edge comes up bright. Tonight, every step below gives you a little more time.'; }
 };
 /* ---------- ingredients and the pantry ----------
-   Every fixed dish needs two ingredients. You bring them in at dusk; they keep two nights, then rot.
-   Cooking with them gives more time (fine +5%, perfect +10% and a tooth); without one you use a substitute
-   (-8% time, 2 fewer teeth). A Drowned Hand stands in for anything, as if perfect. */
+   Every fixed dish needs two ingredients. You bring them in at dusk, a basket of three jars at a time, and they sit
+   on a shelf of six for three nights before they spoil. Cooking with one: fine gives more time below, perfect gives
+   much more and a tooth, bruised gives nothing extra. Without one, you use something of your own: it costs Body and
+   a little time. A Drowned Hand stands in for anything, as if perfect. */
 const INGR = {
   root: { name: 'Weeping Root', place: 'yard' }, bones: { name: 'Marrow Bones', place: 'yard' }, relics: { name: 'Relics', place: 'yard' },
   eyes: { name: 'Lantern-Eyes', place: 'wall' }, caps: { name: 'Cellar Caps', place: 'wall' },
@@ -2473,6 +2523,35 @@ const INGR = {
   eel: { name: 'Well-Eel', place: 'well' }, lamprey: { name: 'Lamprey', place: 'well' }, worm: { name: 'Grief-Worm', place: 'well' }, hand: { name: 'Drowned Hand', place: 'well' }
 };
 const QUAL = ['Bruised', 'Fine', 'Perfect'];
+// a small painted picture of each ingredient, drawn once and kept, for the basket, the shelf, the menu and the cards
+const ICONS = {};
+function ingIcon(id) {
+  if (ICONS[id]) return ICONS[id];
+  const k = document.createElement('canvas'); k.width = k.height = 48; const c = k.getContext('2d');
+  const disc = c.createRadialGradient(20, 18, 4, 24, 24, 24); disc.addColorStop(0, '#2a241e'); disc.addColorStop(1, '#0c0a08'); c.fillStyle = disc; c.beginPath(); c.arc(24, 24, 23, 0, TAU); c.fill();
+  const ell = (x, y, rx, ry, rot, col) => { c.fillStyle = col; c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, TAU); c.fill(); };
+  const line = (pts, w, col) => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke(); };
+  if (id === 'root') { line([[14, 34], [10, 42]], 2, '#a89070'); line([[22, 36], [24, 44]], 2, '#a89070'); line([[30, 34], [36, 41]], 2, '#a89070'); ell(23, 24, 12, 14, -.3, '#cbb48e'); ell(20, 20, 5, 4, -.3, 'rgba(255,240,215,.5)'); c.fillStyle = '#2a120a'; c.fillRect(18, 22, 3, 2); c.fillRect(26, 21, 3, 2); ell(23, 29, 3, 2, 0, '#3a140c'); }
+  else if (id === 'bones') { for (const [a, col] of [[.7, '#d9cfb8'], [-.7, '#c8bea6']]) { c.save(); c.translate(24, 24); c.rotate(a); c.fillStyle = col; c.fillRect(-14, -3, 28, 6); for (const s of [-1, 1]) { c.beginPath(); c.arc(s * 14, -3, 4, 0, TAU); c.arc(s * 14, 3, 4, 0, TAU); c.fill(); } c.restore(); } }
+  else if (id === 'relics') { c.fillStyle = '#8a6a2a'; c.fillRect(13, 16, 22, 20); c.fillStyle = '#d8b860'; c.fillRect(15, 18, 18, 16); c.fillStyle = '#6a1a12'; c.fillRect(22, 20, 4, 12); c.fillRect(18, 24, 12, 4); c.fillStyle = '#d8b860'; c.beginPath(); c.moveTo(13, 16); c.lineTo(24, 9); c.lineTo(35, 16); c.fill(); }
+  else if (id === 'eyes') { ell(24, 24, 13, 11, 0, '#e8dcc0'); line([[12, 22], [17, 23]], 1, '#a3241a'); line([[34, 27], [30, 25]], 1, '#a3241a'); ell(25, 25, 6, 6, 0, '#7a6a2a'); ell(25, 25, 3, 3, 0, '#0a0606'); ell(22, 22, 2, 1.5, -.5, '#fff'); }
+  else if (id === 'caps') { for (const [x, y, s] of [[17, 26, 1], [30, 22, 1.2], [26, 32, .8]]) { c.fillStyle = '#d0c4a8'; c.fillRect(x - 2 * s, y, 4 * s, 10 * s); ell(x, y, 8 * s, 5 * s, 0, '#6a4a2e'); ell(x - 2 * s, y - 2 * s, 3 * s, 1.5 * s, -.3, 'rgba(255,230,200,.35)'); } }
+  else if (id === 'silk') { c.strokeStyle = '#ece6d6'; c.lineWidth = 1.4; for (let i = 0; i < 7; i++) { c.beginPath(); c.ellipse(24, 24, 12 - i * .5, 8 - i * .6, i * .45, 0, TAU); c.stroke(); } line([[24, 16], [24, 6]], 1, 'rgba(236,230,214,.6)'); }
+  else if (id === 'yolk') { ell(24, 25, 12, 13, 0, '#c87a1a'); ell(24, 27, 9, 9, 0, '#e8a83a'); ell(20, 21, 3, 2, -.4, 'rgba(255,240,200,.7)'); ell(27, 30, 2.5, 2.5, 0, '#3a1408'); }
+  else if (id === 'milk' || id === 'bile') { const col = id === 'milk' ? ['#0a0a0c', '#2a2a30'] : ['#6a7a1a', '#a8b83a']; c.fillStyle = col[0]; c.beginPath(); c.moveTo(24, 9); c.bezierCurveTo(32, 20, 36, 26, 36, 31); c.arc(24, 31, 12, 0, Math.PI); c.bezierCurveTo(12, 26, 16, 20, 24, 9); c.fill(); ell(20, 28, 3, 5, -.3, col[1]); ell(19, 25, 1.5, 2.5, -.3, 'rgba(255,255,255,.55)'); }
+  else if (id === 'fruit') { ell(24, 26, 12, 12, 0, '#3a2a40'); ell(20, 22, 4, 3, -.4, 'rgba(200,180,220,.35)'); line([[24, 14], [26, 8]], 2, '#2a2016'); ell(30, 10, 5, 2.5, -.4, '#3a4a2a'); line([[28, 37], [28, 43]], 2, 'rgba(120,160,150,.7)'); }
+  else if (id === 'tongues') { c.fillStyle = '#c86a6e'; c.beginPath(); c.moveTo(16, 12); c.quadraticCurveTo(14, 34, 24, 40); c.quadraticCurveTo(34, 34, 32, 12); c.closePath(); c.fill(); line([[24, 14], [24, 34]], 1.5, '#7a2a30'); ell(20, 18, 2, 4, 0, 'rgba(255,220,220,.4)'); }
+  else if (id === 'eel') { line([[10, 32], [16, 20], [24, 30], [32, 18], [38, 22]], 6, '#7a8a6a'); line([[10, 32], [16, 20], [24, 30], [32, 18], [38, 22]], 2, '#a8b898'); c.fillStyle = '#e8e0c0'; c.fillRect(36, 20, 2, 2); }
+  else if (id === 'lamprey') { ell(24, 24, 14, 14, 0, '#6a646e'); ell(24, 24, 10, 10, 0, '#5a1a1e'); c.strokeStyle = '#e8dcb0'; c.lineWidth = 1.4; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; c.beginPath(); c.moveTo(24 + Math.cos(a) * 9, 24 + Math.sin(a) * 9); c.lineTo(24 + Math.cos(a) * 5, 24 + Math.sin(a) * 5); c.stroke(); } ell(24, 24, 3, 3, 0, '#000'); }
+  else if (id === 'worm') { for (let i = 0; i < 7; i++) { const a = i / 6 * Math.PI * 1.4 + .6; ell(24 + Math.cos(a) * 10, 24 + Math.sin(a) * 10, 5, 5, 0, i % 2 ? '#c88a86' : '#b07470'); } }
+  else if (id === 'hand') { c.save(); c.translate(22, 30); handShape(c, 1.3); c.restore(); }
+  return ICONS[id] = k;
+}
+const ICON_URL = {};
+const ingImg = id => ICON_URL[id] || (ICON_URL[id] = ingIcon(id).toDataURL());
+// one jar of something: its picture, its name, and pips for how good it is (bruised, fine, perfect)
+const jarQ = it => it.id === 'hand' ? 2 : it.q ?? 1;
+const jarHTML = (it, cls = '') => `<span class="jar q${jarQ(it)} ${cls}" title="${ingName(it)}"><img src="${ingImg(it.id)}" alt=""><em>${INGR[it.id].name}</em></span>`;
 const PLACES = {
   yard: { name: 'The Churchyard', game: 'dig', line: 'The soil is loose tonight.' },
   wall: { name: 'The Cellar Wall', game: 'lantern', line: 'Something is ripening in the stones.' },
@@ -2486,7 +2565,7 @@ const NEEDS = {
   orchard: ['fruit', 'milk'], sorrow: ['worm', 'caps'], velvet: ['bile', 'yolk'], gallows: ['lamprey', 'root'], nursery: ['yolk', 'caps'], wakecake: ['silk', 'fruit'],
   ragout: ['caps', 'root'], reliquary: ['relics', 'bones']
 };
-const PANTRY_MAX = 8;
+const PANTRY_MAX = 6, KEEPS = 3;
 const pantryHas = id => (L.pantry || []).some(p => p.id === id || p.id === 'hand');
 function pantryTake(id) {
   let i = -1, best = -1;
@@ -2499,35 +2578,49 @@ function pantryAdd(items) {
   for (const it of items) { if (L.pantry.length < PANTRY_MAX) { L.pantry.push({ id: it.id, q: it.q, age: 0 }); kept.push(it); } else lost.push(it); }
   return { kept, lost };
 }
-const ingName = it => `${QUAL[it.id === 'hand' ? 2 : it.q]} ${INGR[it.id].name}`;
-function pantryHTML() {
-  const p = L.pantry || [];
-  return `<div><div class="sect">Pantry ${p.length}/${PANTRY_MAX}</div>${p.length ? `<div class="kept">${p.map(it => `<span>${ingName(it)}</span>`).join('')}</div>` : '<p class="eyebrow">empty</p>'}</div>`;
+const ingName = it => `${QUAL[jarQ(it)]} ${INGR[it.id].name}`;
+// the shelf: six places, jars darkening as they near the night they spoil
+function shelfHTML(small) {
+  const p = L.pantry || [], slots = [];
+  for (let i = 0; i < PANTRY_MAX; i++) slots.push(p[i] ? jarHTML(p[i], (p[i].age || 0) >= KEEPS ? 'old' : '') : '<span class="jar empty"></span>');
+  return `<div class="shelf${small ? ' small' : ''}">${slots.join('')}</div>`;
 }
+const pantryHTML = () => `<div><div class="sect">The shelf ${(L.pantry || []).length}/${PANTRY_MAX}</div>${shelfHTML()}</div>`;
+// what each jar does for the night: more time below for a good one, a tooth for a perfect one;
+// without one you use something of your own, and that costs you
+const ING_FX = [{ mul: 0, teeth: 0, say: 'nothing extra' }, { mul: .08, teeth: 0, say: 'more time below' }, { mul: .15, teeth: 1, say: 'much more time below, and a tooth' }];
+const MISSING = { mul: -.05, body: 6 };
 // take what a dish needs from the pantry, and work out what that does to the night
 function useIngredients(dishId) {
   const needs = NEEDS[dishId]; if (!needs) return null;
-  let mul = 1, teeth = 0; const parts = [];
+  let mul = 1, teeth = 0, body = 0; const lines = [];
   for (const id of needs) {
     const got = pantryTake(id);
-    if (got) { const q = got.id === 'hand' ? 2 : got.q; mul += [0, .05, .1][q]; teeth += q === 2 ? 1 : 0; parts.push(got.id === id ? ingName(got) : `${ingName(got)} for ${INGR[id].name}`); }
-    else { mul -= .06; teeth -= 1; parts.push(`no ${INGR[id].name}, something else instead`); }
+    if (got) { const fx = ING_FX[jarQ(got)]; mul += fx.mul; teeth += fx.teeth; lines.push(`<div class="use">${jarHTML(got)}<span><b>${ingName(got)}${got.id !== id ? ` for ${INGR[id].name}` : ''}</b><i>${fx.say}</i></span></div>`); }
+    else { mul += MISSING.mul; body += MISSING.body; lines.push(`<div class="use none"><span class="jar empty"></span><span><b>No ${INGR[id].name}</b><i>you use something of your own · Body −${MISSING.body}</i></span></div>`); }
   }
+  if (body) { bump('body', -body); hurt(.3); }
   saveLife();
-  return { mul, teeth, line: parts.join(' · ') };
+  return { mul, teeth, body, html: lines.join('') };
 }
+// does the shelf hold what this dish needs: 2 both, 1 one of them, 0 neither
+const stocked = dishId => (NEEDS[dishId] || []).filter(pantryHas).length;
 const tonightPlace = () => { const k = Object.keys(PLACES); return k[((L.book || 0) + L.day * 7) % k.length]; };
 // dusk: before every night you must bring something in, from tonight's place or from the well
+// an ingredient is wanted when the shelf already holds the other half of some dish it goes into
+const wanted = id => !pantryHas(id) && Object.values(NEEDS).some(n => n.includes(id) && n.some(o => o !== id && pantryHas(o)));
+const findsHTML = ids => `<span class="finds">${ids.map(id => `<span class="jar mini${wanted(id) ? ' want' : ''}" title="${INGR[id].name}${wanted(id) ? ': would finish a dish' : ''}"><img src="${ingImg(id)}" alt="${INGR[id].name}"></span>`).join('')}</span>`;
 function gatherChoice(then) {
   mode = 'day'; L.phase = 'dusk'; saveLife();
-  const pk = tonightPlace(), p = PLACES[pk], names = Object.keys(INGR).filter(id => INGR[id].place === pk && id !== 'relics').map(id => INGR[id].name).join(', ');
+  const pk = tonightPlace(), p = PLACES[pk], here = Object.keys(INGR).filter(id => INGR[id].place === pk);
   show(dock(`${dayHead('Dusk', L.day)}
     <p class="omen big">Before the kitchen, something has to be brought in.</p>
     <div class="list">
-      <button type="button" data-g="${pk}"><span><b>${p.name}</b><em>${p.line} ${names}.</em></span><small>gather</small></button>
-      <button type="button" data-g="well"><span><b>The Well</b><em>Something moves at the bottom. Well-Eel, Lamprey, Grief-Worm.</em></span><small>fish</small></button>
+      <button type="button" data-g="${pk}"><span><b>${p.name}</b><em>${p.line}</em>${findsHTML(here)}</span><small>gather</small></button>
+      <button type="button" data-g="well"><span><b>The Well</b><em>Something moves at the bottom.</em>${findsHTML(['eel', 'lamprey', 'worm'])}</span><small>fish</small></button>
     </div>
-    ${pantryHTML()}`), n => n.querySelectorAll('[data-g]').forEach(b => b.onclick = () => startGather(b.dataset.g, then)), true);
+    ${pantryHTML()}
+    <p class="eyebrow">A ringed jar would finish a dish you have half of.</p>`), n => n.querySelectorAll('[data-g]').forEach(b => b.onclick = () => startGather(b.dataset.g, then)), true);
 }
 function startGather(pk, then) {
   const id = pk === 'well' ? 'fish' : PLACES[pk].game;
@@ -2544,15 +2637,15 @@ const OUT_CU = {
   well: 'It has been waiting at the bottom a long time.'
 };
 function gatherResult() {
-  const { kept, lost } = pantryAdd((lastYield || []).filter(Boolean)), dropped = lastYield ? lastYield.dropped : 0;
+  const { kept, lost } = pantryAdd((lastYield || []).filter(Boolean));
   lifeStats().gathered += kept.length;
   L.phase = 'night'; saveLife();
   const then = run.then; run = null;
   show(dock(`${dayHead('Dusk', L.day)}
     <p class="omen big">${kept.length ? 'You bring back:' : 'You come back with nothing.'}</p>
-    ${kept.length ? `<div class="kept">${kept.map(it => `<span>${ingName(it)}</span>`).join('')}</div>` : ''}
-    ${dropped ? `<p class="eyebrow">Your arms were full. You left ${dropped} behind, and ${dropped > 1 ? 'they were' : 'it was'} still moving.</p>` : ''}
-    ${lost.length ? `<p class="eyebrow">The pantry is full. ${lost.map(it => INGR[it.id].name).join(', ')} left on the step.</p>` : ''}
+    ${kept.length ? `<div class="shelf">${kept.map(it => jarHTML(it)).join('')}</div>` : ''}
+    ${lost.length ? `<p class="eyebrow">The shelf is full. ${lost.map(it => INGR[it.id].name).join(', ')} left on the step.</p>` : ''}
+    ${pantryHTML()}
     <div class="go"><button id="go" type="button">Go down</button></div>`), n => n.querySelector('#go').onclick = then, true);
 }
 const downToKitchen = () => cutscene('down', () => { menu(); glimpse('ashe', 'She is already at the stove. She has always been at the stove.', .08); });
@@ -2564,7 +2657,7 @@ function statsHTML() {
   return `<div class="vitals">${statRow('body', 'Body')}${statRow('mind', 'Mind')}</div>
     <div class="purse"><span>Teeth</span><b>${TOOTH}${L.teeth}</b></div>
     ${kept ? `<div class="kept">${kept}</div>` : ''}
-    ${(L.pantry || []).length ? `<div class="kept pantry">${L.pantry.map(p => `<span>${INGR[p.id].name}</span>`).join('')}</div>` : ''}`;
+    ${(L.pantry || []).length ? shelfHTML(true) : ''}`;
 }
 const dayHead = (label, value, right = '') => `<div class="dayhead"><div class="num"><small>${label}</small>${value}</div>${right}</div>`;
 const hoursHTML = h => `<div class="hours" aria-label="${h} ${h === 1 ? 'hour' : 'hours'} of light left">${[0, 1].map(i => `<i class="${i < h ? 'lit' : ''}"></i>`).join('')}</div>`;
@@ -2657,7 +2750,7 @@ function sleep() {
     else { cause = 'visit'; bump('mind', -10); cause = 'day'; notes.push('Something was in the room while you slept. It sat very close.'); }
   }
   const rotted = [];
-  L.pantry = (L.pantry || []).filter(p => { p.age = (p.age || 0) + 1; if (p.age > 2) { rotted.push(INGR[p.id].name); return false; } return true; });
+  L.pantry = (L.pantry || []).filter(p => { p.age = (p.age || 0) + 1; if (p.age > KEEPS) { rotted.push(INGR[p.id].name); return false; } return true; });
   if (rotted.length) notes.push(`${rotted.join(', ')} ${rotted.length > 1 ? 'have' : 'has'} gone soft and black in the pantry.`);
   if ((L.handBlood || 0) > .4) notes.push('The water in the basin goes red.');
   L.handBlood = 0;
@@ -3796,10 +3889,10 @@ function menu() {
   mode = 'idle'; mut = null; game = null; parts = []; mirrorReset();
   const cards = DISHES.map(d => {
     const lock = d.id === 'feast' && !unlocked();
-    return `<button class="dish" data-id="${d.id}" type="button" ${lock ? 'disabled' : ''}>
+    return `<button class="dish${L && !lock && stocked(d.id) === 2 ? ' ready' : ''}" data-id="${d.id}" type="button" ${lock ? 'disabled' : ''}>
       <canvas data-dish="${d.id}" width="160" height="100"></canvas>
       <strong>${lock ? '—' : d.name}</strong><span>${d.blurb}</span>
-      ${L && NEEDS[d.id] ? `<span class="needs">${NEEDS[d.id].map(id => `<i class="${pantryHas(id) ? 'have' : ''}">${INGR[id].name}</i>`).join('')}</span>` : ''}
+      ${L && NEEDS[d.id] ? `<span class="needs${stocked(d.id) === 2 ? ' ready' : ''}">${NEEDS[d.id].map(id => `<i class="${pantryHas(id) ? 'have' : ''}" title="${INGR[id].name}"><img src="${ingImg(id)}" alt="">${INGR[id].name}</i>`).join('')}${stocked(d.id) === 2 ? '<b>ready</b>' : ''}</span>` : ''}
       ${lock ? '<span>&nbsp;</span>' : candles(best[d.id] || 0)}</button>`;
   }).join('');
   show(`<div class="card wide"><div class="txt">${L ? `<span class="eyebrow">Night ${L.day}</span>` : ''}<div class="menu">${cards}</div></div></div>`, n => {
@@ -3829,7 +3922,7 @@ function startDish(d) {
   show(`<div class="card">${P(guest.id)}<div class="txt">
     <h2>${guest.name}</h2>
     <p class="omen">${guest.line}</p>
-    ${run.ing ? `<p class="eyebrow">${run.ing.line}</p>` : ''}
+    ${run.ing ? `<div class="uses">${run.ing.html}</div>` : ''}
     <div class="btns"><button id="go" type="button">Cook</button></div></div></div>`, n => n.querySelector('#go').onclick = stepCard);
   glimpse(guest.id, guest.line, .2);
 }
@@ -3848,6 +3941,8 @@ function beginStep() {
   mut = st.m; twx = st.proc ? st.proc.tw : null; presReset(run.guest && run.pres ? run.guest.id : null); mirrorReset(); ruleReset();
   game = (GAMES[st.id] || GATHER[st.id]).make(st.m); game.info = stepInfo(st);
   if (game.ownCursor === undefined) game.ownCursor = OWN_CURSOR.has(st.id);
+  // a gathering trip ends as soon as the basket is full
+  if (run.gather) { const done = game.done; game.done = () => basket(game).jars.length >= CARRY || (done ? done() : false); basketN = 0; }
   if (run.ing) game.dur *= run.ing.mul;
   if (st.proc) game.dur *= st.proc.durMul;
   if (L) game.dur *= 1 + .08 * L.up.blade + (L.sharp ? .1 : 0);
@@ -4120,7 +4215,7 @@ function frame(now) {
       if (twx && twx.lag) { const k = Math.min(1, dt * 5); ptr.x += (tgt.x - ptr.x) * k; ptr.y += (tgt.y - ptr.y) * k; if (game.move) game.move(ptr.x, ptr.y); }
       game.update(sdt, TT); timer -= sdt; ruleTick(dt);
       if (timer / game.dur < .3) { beatT -= sdt; if (beatT <= 0) { sThump(); beatT = .55 + timer / game.dur; } }
-      if (timer <= 0 || (game.done && game.done())) { mode = 'end'; endT = 1; lastScore = Math.round(game.score()); lastYield = game.yields ? game.yields() : null; if (lastYield) lastYield.dropped = game.dropped || 0; ptr.down = false; if (mir.on) setMirror(false); }
+      if (timer <= 0 || (game.done && game.done())) { mode = 'end'; endT = 1; lastScore = Math.round(game.score()); lastYield = game.yields ? game.yields() : null; ptr.down = false; if (mir.on) setMirror(false); }
     }
     drawTwisted(c);
     drawParts(c, dt);
@@ -4133,6 +4228,7 @@ function frame(now) {
   if (mode !== 'day' && mode !== 'cut') drawLight(c);
   // the guest's doings sit above the lamp's dark, or they would vanish at the edges where they happen
   if (game && mode === 'play') { drawPres(c); drawRuleTop(c); }
+  if (game && run && run.gather && (mode === 'play' || mode === 'ready' || mode === 'end')) drawBasket(c);
   // in play the hand belongs to the picture (lit, graded, dithered with it); only when a menu or close-up is up
   // does it move to the layer above them, so it is never in two places at once
   const handTop = handOn.matches && (!ov.hidden || !!cu);
