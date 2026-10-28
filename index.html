@@ -47,6 +47,12 @@ canvas#cv { width: 100%; height: 100%; display: block; touch-action: none; curso
 .overlay.docked, .overlay.titled { pointer-events: none; }
 .overlay.docked > *, .overlay.titled > * { pointer-events: auto; }
 canvas#cu { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8; cursor: pointer; touch-action: none; }
+/* your hand rides above everything in the stage, menus and close-ups included; with a mouse, it replaces the pointer there */
+canvas#hand { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; image-rendering: pixelated; display: none; }
+@media (hover: hover) and (pointer: fine) and (min-width: 641px) {
+  canvas#hand { display: block; }
+  .stage, .stage * { cursor: none !important; }
+}
 .overlay {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   padding: 3cqw; background: rgba(5, 4, 3, .62); overflow-y: auto; overflow-x: hidden;
@@ -196,6 +202,7 @@ button:disabled { opacity: .32; cursor: not-allowed; }
   <canvas id="cv" width="800" height="560" aria-label="The kitchen"></canvas>
   <div class="overlay" id="ov"></div>
   <canvas id="cu" hidden aria-label="Close-up"></canvas>
+  <canvas id="hand" aria-hidden="true"></canvas>
 </div>
 <div class="bar">
   <small>mouse / touch / space</small>
@@ -504,6 +511,12 @@ function toLocal(e) { const r = cv.getBoundingClientRect(); return { x: (e.clien
 function setRaw(p) { rp.x = p.x; rp.y = p.y; updatePtr(); }
 cv.addEventListener('pointerdown', e => { ac(); if (mode === 'cut') { if (cut && cut.t > .5) endCut(); return; } try { cv.setPointerCapture(e.pointerId); } catch (_) {} setRaw(toLocal(e)); ptr.down = true; if (mode === 'play' && game.down) game.down(ptr.x, ptr.y); });
 cv.addEventListener('pointermove', e => { setRaw(toLocal(e)); if (mode === 'play' && game.move) game.move(ptr.x, ptr.y); });
+// the hand follows the pointer over menus and close-ups too, not only over the canvas, and is drawn above them
+const stageEl = cv.parentElement, handCv = document.getElementById('hand'), hctx = handCv.getContext('2d');
+handCv.width = LW; handCv.height = LH;
+const handOn = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 641px)');
+stageEl.addEventListener('pointermove', e => { HAND.out = false; if (e.target !== cv) setRaw(toLocal(e)); });
+stageEl.addEventListener('pointerleave', () => { HAND.out = true; });
 const up = () => { if (!ptr.down) return; ptr.down = false; if (mode === 'play' && game.up) game.up(ptr.x, ptr.y); };
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 window.addEventListener('keydown', e => { if (mode === 'cut' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); if (cut && cut.t > .5) endCut(); return; } if (e.code !== 'Space' || mode !== 'play') return; e.preventDefault(); if (e.repeat) return; ptr.down = true; if (game.down) game.down(ptr.x, ptr.y); });
@@ -1514,6 +1527,12 @@ function handFx(dt) {
   return [ox, oy];
 }
 function drawCursor(c) {
+  // drawn so the fingertips, not the palm, sit on the point you are actually touching
+  c.save(); c.translate(0, 19);
+  drawCursorAt(c);
+  c.restore();
+}
+function drawCursorAt(c) {
   HAND.trail.push([ptr.x, ptr.y]); if (HAND.trail.length > 40) HAND.trail.shift();
   const night = game && (mode === 'play' || mode === 'ready' || mode === 'end'), role = night && run && run.guest ? run.guest.id : null;
   const back = k => HAND.trail[Math.max(0, HAND.trail.length - 1 - k)];
@@ -3935,7 +3954,10 @@ function frame(now) {
   if (mode !== 'day' && mode !== 'cut') drawLight(c);
   // the guest's doings sit above the lamp's dark, or they would vanish at the edges where they happen
   if (game && mode === 'play') { drawPres(c); drawRuleTop(c); }
-  if (mode !== 'cut') drawCursor(c);
+  if (handOn.matches) {
+    hctx.setTransform(1, 0, 0, 1, 0, 0); hctx.clearRect(0, 0, LW, LH);
+    if (mode !== 'cut' && !HAND.out) { hctx.setTransform(LS, 0, 0, LS, 0, 0); drawCursor(hctx); }
+  } else if (mode !== 'cut') drawCursor(c);
   postFX(c, LW, LH, 16, twx && (twx.hue || twx.sat !== 1) && mode !== 'cut' ? (twx.mat || (twx.mat = hueMatrix(twx.hue, twx.sat))) : null);
   const d = dctx; d.setTransform(DPR, 0, 0, DPR, 0, 0); d.imageSmoothingEnabled = false;
   d.drawImage(lc, 0, 0, W, H);
