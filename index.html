@@ -10,7 +10,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&family=VT323&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Reenie+Beanie&family=Special+Elite&family=VT323&display=swap">
 <style>
 /* Layout: one 800x560 stage, rendered at 320x224 and dithered (PS1-era), scaled up; terse ledger cards float over it. Single dark look. */
 :root {
@@ -221,6 +221,42 @@ button:disabled { opacity: .32; cursor: not-allowed; }
 .link:hover { background: none; color: var(--bone); text-decoration-color: var(--blood); transform: none; }
 .link:active { transform: none; box-shadow: none; }
 .omen.big { font-size: clamp(19px, 3.2cqw, 26px); line-height: 1.3; color: var(--bone); }
+/* the peddler in the corner of the room, and his button on the floor by him */
+.peddle { position: absolute; left: 37.5%; top: 81%; transform: translateX(-50%); font-size: clamp(15px, 2.2cqw, 20px); padding: .15em .8em; background: rgba(21,18,15,.9); border-color: #6b5a42; display: inline-flex; align-items: center; gap: 6px; }
+.peddle:hover { background: #2a2018; }
+.peddle:active { transform: translateX(-50%) translate(2px, 2px); }
+.peddle .tooth { width: 10px; height: 12px; }
+@media (max-width: 640px) { .peddle { display: none; } }
+/* the shop: what he says about a thing, then exactly what it does */
+.list button em.say { font-family: var(--display); font-style: italic; font-size: 14px; color: #c9a49a; }
+.list button em.fx { font-family: var(--pix); font-size: 15px; color: #9da35a; }
+.list button:disabled em.fx { color: var(--dim); }
+.keep { font-family: var(--pix); font-style: normal; font-size: 16px; line-height: 1.2; color: #c9a49a; letter-spacing: .04em; }
+/* a page from the notebook: someone else's hand, getting worse the further in it goes */
+.page { position: relative; padding: 10px 14px 12px; background: linear-gradient(170deg, #cfc2a2, #b9a984 70%, #a8946c); color: #2a1a10; box-shadow: 2px 3px 0 rgba(0,0,0,.6), inset 0 0 22px rgba(90,60,30,.45); transform: rotate(calc(var(--tilt, 0) * 1deg)); }
+.page::after { content: ''; position: absolute; right: 8px; bottom: 6px; width: 34px; height: 22px; border-radius: 50%; background: radial-gradient(rgba(110,30,20,.35), transparent 70%); }
+.page .at { display: block; font-family: var(--pix); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #6b5034; margin-bottom: 2px; }
+.page p { font-family: "Reenie Beanie", var(--body); font-size: 23px; line-height: 1.05; filter: blur(calc(var(--smear, 0) * 1px)); letter-spacing: calc(var(--shake, 0) * .04em); }
+.page.torn { clip-path: polygon(0 0, 100% 0, 100% 70%, 88% 78%, 74% 66%, 60% 82%, 44% 70%, 30% 86%, 14% 72%, 0 84%); padding-bottom: 26px; }
+.page.found { animation: pagein 1s ease both; }
+@keyframes pagein { from { opacity: 0; transform: translateY(10px) rotate(calc(var(--tilt, 0) * 1deg - 4deg)); } }
+/* the night's account: what it took and what it paid, line by line */
+.ledger { display: grid; gap: 2px; font-family: var(--pix); font-size: 16px; color: var(--dim); }
+.ledger .lg { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; padding-bottom: 2px; border-bottom: 1px solid var(--edge); color: var(--bone); letter-spacing: .12em; text-transform: uppercase; }
+.ledger .lg b { font-weight: 400; letter-spacing: 0; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
+.ledger .lr { display: flex; justify-content: space-between; padding-left: 10px; }
+.ledger .lr span:last-child { color: #c9a49a; font-variant-numeric: tabular-nums; }
+.ledger .lr.plus span:last-child { color: #9da35a; }
+.ledger .next { margin-top: 8px; font-family: var(--body); font-size: 13px; line-height: 1.4; color: var(--dim); }
+/* teeth you can watch: paid ones fall into the jar, taken ones lift away */
+.rain { display: flex; flex-wrap: wrap; gap: 3px; min-height: 16px; color: var(--bone); }
+.rain i { display: inline-flex; animation: toothin .5s cubic-bezier(.3,1.6,.6,1) both; animation-delay: calc(var(--i) * .12s + .4s); }
+.rain.out i { color: #c9a49a; animation: toothout 1.2s ease-in both; animation-delay: calc(var(--i) * .15s + .6s); }
+.rain .tooth { width: 11px; height: 13px; }
+@keyframes toothin { from { opacity: 0; transform: translateY(-26px) rotate(-30deg); } }
+@keyframes toothout { 0% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px) rotate(20deg); } }
+.spent { font-family: var(--pix); font-size: 18px; color: #c9a49a; animation: toothout 1.4s ease-in both; display: inline-flex; align-items: center; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .rain i, .rain.out i, .spent, .page.found { animation: none; } .rain.out i { opacity: .3; } }
 /* the title: no box, just the word, a red rule and a short list, set against the dark */
 .overlay.titled { justify-content: flex-end; background: linear-gradient(90deg, rgba(5,4,3,0) 25%, rgba(5,4,3,.8) 62%); backdrop-filter: none; }
 .title { width: min(100%, 44cqw, 420px); min-width: 0; margin-right: 3cqw; display: grid; gap: 22px; }
@@ -3301,18 +3337,21 @@ function drawLight(c, lx = 400, ly = 70, r0 = 30, r1 = 560, dy = 230) {
 /* ---------- the life upstairs ----------
    Day: wake in the room, maybe something happens, spend a couple of hours, spend teeth.
    Night: go down and cook. The guest pays in teeth; the night takes body and mind. */
+// what the peddler sells. `say` is what he tells you about it; `fx` is exactly what it does, in numbers
 const UPGRADES = {
-  bed: { tiers: ['Straw on the floor', 'An iron cot', 'A feather bed'], cost: [0, 21, 52], fx: ['', 'Sleep mends more.', 'Sleep mends much more.'] },
-  lock: { tiers: ['A door that will not shut', 'A bolt', 'A chain and a bolt'], cost: [0, 18, 42], fx: ['', 'Fewer visits in the night.', 'No visits in the night.'] },
-  lamp: { tiers: ['A tallow stub', 'An oil lamp', 'A ring of candles'], cost: [0, 19, 46], fx: ['', 'Sleep steadies the mind.', 'Sleep steadies it more.'] },
-  blade: { tiers: ['A dull knife', 'A whetstone', 'A bone-handled set'], cost: [0, 23, 56], fx: ['', 'More time below.', 'Even more time below.'] },
-  shrine: { tiers: ['A bare nail', 'A small effigy', 'An altar of teeth'], cost: [0, 14, 44], fx: ['', 'More teeth each night. It takes something.', 'Many more teeth. It takes more.'] }
+  bed: { tiers: ['Straw on the floor', 'An iron cot', 'A feather bed'], cost: [0, 21, 52], say: ['', 'Iron. Nothing grows up through iron.', 'Goose, mostly.'], fx: ['', 'Sleep gives Body +26 (now +16)', 'Sleep gives Body +36'] },
+  lock: { tiers: ['A door that will not shut', 'A bolt', 'A chain and a bolt'], cost: [0, 18, 42], say: ['', 'It holds what knocks.', 'Nothing comes in. Nothing.'], fx: ['', 'Night visits 1 in 10 (now 3 in 10)', 'No night visits'] },
+  lamp: { tiers: ['A tallow stub', 'An oil lamp', 'A ring of candles'], cost: [0, 19, 46], say: ['', 'The dark keeps to the corners for this one.', 'They must be lit in the right order. I have done it for you.'], fx: ['', 'Sleep gives Mind +6 (now +2). Sitting by it: +7', 'Sleep gives Mind +10. Sitting by it: +9'] },
+  blade: { tiers: ['A dull knife', 'A whetstone', 'A bone-handled set'], cost: [0, 23, 56], say: ['', 'A sharp edge is a quick edge. The kitchen likes quick.', 'They were made for that kitchen. They know the way.'], fx: ['', 'Every step below lasts 8% longer', 'Every step below lasts 16% longer'] },
+  shrine: { tiers: ['A bare nail', 'A small effigy', 'An altar of teeth'], cost: [0, 14, 44], say: ['', 'It pays. Everything that pays, takes.', 'Feed it and it feeds you. Mostly.'], fx: ['', 'Teeth each night +20%. Mind −4 each night', 'Teeth each night +40%. Mind −8 each night'] }
 };
 const ITEMS = {
-  bread: { name: 'Bread', cost: 3, desc: 'Body. Takes an hour.' },
-  laudanum: { name: 'Laudanum', cost: 8, desc: 'Mind, at a cost. Takes an hour.' },
-  salt: { name: 'Salt', cost: 5, desc: 'Kept by the door.' }
+  bread: { name: 'Bread', cost: 3, say: 'Yesterday’s.', desc: 'Body +14. Uses an hour of light.' },
+  laudanum: { name: 'Laudanum', cost: 8, say: 'A little quiet, for a little of you.', desc: 'Mind +20, Body −8. Uses an hour of light.' },
+  salt: { name: 'Salt', cost: 5, say: 'By the door. They do not cross it.', desc: 'Turns one night visit away.' }
 };
+// what the sill will take at dawn
+const dueAt = day => 1 + Math.floor(day / 4);
 const NEW_LIFE = () => ({ day: 1, phase: 'day', teeth: 5, body: 78, mind: 78, hours: 2, sharp: false, hint: null, event: null, up: { bed: 0, lock: 0, lamp: 0, blade: 0, shrine: 0 }, items: { bread: 1, laudanum: 0, salt: 0 }, seen: [], met: [], odd: [], pantry: [], handBlood: 0, book: Math.floor(Math.random() * 9000) });
 let L = null;
 function loadLife() { try { const s = JSON.parse(localStorage.getItem('gristle-life') || 'null'); L = s && s.day ? Object.assign(NEW_LIFE(), s) : null; } catch (e) { L = null; } }
@@ -3349,7 +3388,7 @@ const EVENTS = [
   { id: 'rats', text: 'The rats in the walls are singing in a key that hurts.', choices: [
     { label: 'Listen', fx: () => { bump('mind', -8); const g = tonightGuest(); L.hint = g.id; return `They sing the name of tonight's guest. ${g.name}.`; } },
     { label: 'Feed them', note: '3 teeth', req: () => L.teeth >= 3, fx: () => { gain(-3); bump('mind', 10); return 'They go quiet. They will remember you.'; } }] },
-  { id: 'peddler', cu: 'peddler', text:'A peddler with no shadow lays out his wares on your floor.', choices: [
+  { id: 'peddler', cu: 'peddler', text:'The peddler has emptied his whole pack onto your floor. Some of it is moving.', choices: [
     { label: 'Buy salt', note: '4 teeth', req: () => L.teeth >= 4, fx: () => { gain(-4); L.items.salt++; return 'He pours it into your hands. It is warm.'; } },
     { label: 'Trade a memory', fx: () => { bump('mind', -15); gain(7); return 'You can no longer picture your mother. He thanks you.'; } },
     { label: 'Send him away', fx: () => 'He leaves. His wares stay a moment longer than he does.' }] },
@@ -3498,6 +3537,7 @@ function gatherChoice(then, again) {
   const places = Object.keys(PLACES).map(pk => row(pk, PLACES[pk].name, PLACES[pk].line, Object.keys(INGR).filter(id => INGR[id].place === pk), 'gather')).join('');
   show(dock(`${dayHead('Dusk', L.day)}
     <p class="omen big">${again ? 'There is light enough to go out once more, if you can stand it.' : 'Before the kitchen, something has to be brought in.'}</p>
+    ${notePage('pantry')}
     <div class="list">${places}${row('well', 'The Well', 'Something moves at the bottom.', ['eel', 'lamprey', 'worm'], 'fish')}</div>
     ${pantryHTML()}
     <p class="eyebrow">A ringed jar would finish a dish you have half of.</p>
@@ -3549,6 +3589,7 @@ function statsHTML() {
   const kept = Object.entries(L.items).filter(([, n]) => n).map(([k, n]) => `<span>${ITEMS[k].name} ×${n}</span>`).join('');
   return `<div class="vitals">${statRow('body', 'Body')}${statRow('mind', 'Mind')}</div>
     <div class="purse"><span>Teeth</span><b>${TOOTH}${L.teeth}</b></div>
+    <span class="keep">The sill takes ${dueAt(L.day)} at dawn.</span>
     ${kept ? `<div class="kept">${kept}</div>` : ''}
     ${(L.pantry || []).length ? shelfHTML(true) : ''}`;
 }
@@ -3568,15 +3609,67 @@ function newLife() {
 function continueLife() { if (L.phase === 'night') menu(); else if (L.phase === 'dusk') gatherChoice(downToKitchen, L.again); else if (L.phase === 'up') afterNight(); else quarters(); }
 function quarters(notes) {
   mode = 'day'; mut = null; game = null; run = null; parts = []; mirrorReset();
-  if (notes && notes.length) return show(dock(`${dayHead('Morning', L.day)}${notes.map(t => `<p class="omen big">${t}</p>`).join('')}<div class="go"><button id="go" type="button">Get up</button></div>`), n => n.querySelector('#go').onclick = () => quarters(), true);
+  notes = (notes || []).filter(Boolean);
+  if (notes.length) return show(dock(`${dayHead('Morning', L.day)}${notes.map(t => t.startsWith('<div class="page') ? t : `<div class="omen big" style="display:grid;gap:4px">${t}</div>`).join('')}<div class="go"><button id="go" type="button">Get up</button></div>`), n => n.querySelector('#go').onclick = () => quarters(), true);
   if (L.event) return eventCard(EVENTS.find(e => e.id === L.event));
   dayPanel();
 }
+/* ---------- the notebook ----------
+   Someone cooked here before you. Their pages turn up the first time you meet each thing, and say plainly how it
+   works; they never say who wrote them or what happened. Later pages are only dated, and the hand gets worse. */
+const NOTES = {
+  start: { at: 'Under the pillow', text: 'Whoever finds this: you are the cook now. When the light goes, go down. Cook what she shows you. Come back up. Sleep. Again.' },
+  shop: { at: 'Tucked in his pack', text: 'He takes teeth. Buy the bed first, then the lamp. Never spend what the sill needs.' },
+  night: { at: 'Pinned under the plate', text: 'The kitchen eats a little of you every night. Body comes back with sleep. Mind hardly does. Watch the mind.' },
+  sill: { at: 'Wedged in the sill', text: 'Every dawn the sill takes teeth. One at first, one more every four days. If it is short, it takes from your mind instead.' },
+  pantry: { at: 'In an empty jar', text: 'Every dish needs two things from outside. Bring them before you go down. If you don’t have them, the kitchen uses you instead.' },
+  guest: { at: 'Scratched into the cutting board', text: 'When a mark shows in the corner, the guest is bending the step. It pays more. It costs more mind.' },
+  mind: { at: 'Under the lamp', text: 'When the mind gets thin the walls start breathing and your hands shake. Sit by the light. Laudanum works, but it costs the body.' },
+  body: { at: 'Stuck to the stair', text: 'If the body runs out you sleep on the stairs, and they go through your pockets. Half your teeth.' },
+  visit: { at: 'Behind the door', text: 'Something comes in at night unless the door is bolted. A line of salt turns it away once.' },
+  d4: { at: 'Loose, between the floorboards', text: 'Day 11. Ashe hummed while I worked. I did not know she could.' },
+  d7: { at: 'Inside the bread', text: 'Day 19. The stairs have more steps going down than coming up. I have counted.' },
+  d10: { at: 'Folded very small', text: 'Day 26. I have stopped writing down what the guests look like. It doesn’t help.', torn: true },
+  d13: { at: 'In your own coat pocket', text: 'Day 31. If you are reading this then', torn: true }
+};
+const NOTE_ORDER = Object.keys(NOTES);
+const pageHTML = (id, found) => {
+  const i = NOTE_ORDER.indexOf(id), n = NOTES[id], late = Math.max(0, i - 8);
+  return `<div class="page${found ? ' found' : ''}${n.torn ? ' torn' : ''}" style="--tilt:${((i * 37) % 7 - 3) * .5};--smear:${late * .25};--shake:${late}"><span class="at">${n.at}</span><p>${n.text}</p></div>`;
+};
+// the first time something comes up, its page turns up with it (once a life)
+function notePage(id) {
+  if (!L || !NOTES[id]) return '';
+  L.notes = L.notes || [];
+  if (L.notes.includes(id)) return '';
+  L.notes.push(id); saveLife(); tone(660, .4, 'sine', .02, -200);
+  return pageHTML(id, true);
+}
+function notebook(i = (L.notes || []).length - 1) {
+  mode = 'day';
+  const ns = L.notes || [], id = ns[i];
+  show(dock(`${dayHead('The notebook', `${i + 1}<small style="display:inline;margin:0 0 0 6px">/ ${ns.length}</small>`)}
+    ${pageHTML(id)}
+    <div class="links"><button id="prev" class="link" type="button"${i <= 0 ? ' disabled' : ''}>Earlier</button><button id="next" class="link" type="button"${i >= ns.length - 1 ? ' disabled' : ''}>Later</button></div>
+    <div class="go"><button id="back" type="button">Close it</button></div>`), n => {
+    n.querySelector('#prev').onclick = () => notebook(i - 1);
+    n.querySelector('#next').onclick = () => notebook(i + 1);
+    n.querySelector('#back').onclick = () => dayPanel();
+  }, true);
+}
+// on the day panel at most one page turns up at a time: the first that applies
+function dayPage() {
+  if (L.day === 1) return notePage('start');
+  for (const [id, ok] of [['mind', L.mind < 50], ['body', L.body < 35], ['d4', L.day >= 4], ['d7', L.day >= 7], ['d10', L.day >= 10], ['d13', L.day >= 13]])
+    if (ok && !(L.notes || []).includes(id)) return notePage(id);
+  return '';
+}
 function dayPanel(msg) {
-  mode = 'day'; L.phase = 'day'; saveLife();
+  mode = 'day'; L.phase = 'day'; peddling = false; saveLife();
   const h = L.hours, A = (id, label, note, ok = true) => `<button type="button" data-a="${id}"${!ok || h <= 0 ? ' disabled' : ''}><span>${label}</span><small>${note}</small></button>`;
   show(dock(`${dayHead('Day', L.day, hoursHTML(h))}
     ${msg ? `<p class="omen">${msg}</p>` : ''}
+    ${dayPage()}
     ${statsHTML()}
     <div><div class="sect">${h ? 'While there is light' : 'The light is going'}</div>
     <div class="list">
@@ -3587,15 +3680,18 @@ function dayPanel(msg) {
       ${A('look', 'Look around', '?')}
     </div></div>
     <div class="go"><button id="down" type="button">Go down</button>
-      <div class="links"><button id="book" class="link" type="button" title="Choose a stranger dish for tonight. It pays more teeth and costs more mind.">Open the book</button><button id="shop" class="link" type="button">Spend teeth</button></div></div>`), n => {
+      <div class="links"><button id="book" class="link" type="button" title="Choose a stranger dish for tonight. It pays more teeth and costs more mind.">Open the book</button><button id="shop" class="link" type="button">The peddler</button>${(L.notes || []).length ? `<button id="notes" class="link" type="button">The notebook</button>` : ''}</div></div>`), n => {
     n.querySelector('#book').onclick = () => { tone(147, .8, 'sine', .04); labMenu(true); };
+    const nb = n.querySelector('#notes'); if (nb) nb.onclick = () => notebook();
+    // his button, on the floor by him
+    const pb = el(`<button class="peddle" type="button" aria-label="Trade with the peddler">Trade ${TOOTH}${L.teeth}</button>`); pb.onclick = () => shop(); ov.appendChild(pb);
     n.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
       if (L.hours <= 0) return; L.hours--;
       if (b.dataset.a === 'look') { L.event = pickEvent(); saveLife(); return eventCard(EVENTS.find(e => e.id === L.event)); }
       const before = snap(), txt = DAY_ACTS[b.dataset.a](), d = diffs(before); saveLife(); tone(147, .6, 'sine', .04);
       dayPanel(txt + (d ? ` <span class="eyebrow">${d}</span>` : ''));
     });
-    n.querySelector('#shop').onclick = shop;
+    n.querySelector('#shop').onclick = () => shop();
     n.querySelector('#down').onclick = () => { tone(55, 1.2, 'sawtooth', .05, -15); gatherChoice(downToKitchen); };
   }, true);
 }
@@ -3612,36 +3708,49 @@ function eventCard(ev) {
   }, true);
   if (ev.cu) glimpse(ev.cu, ev.text, .35, 'e-' + ev.id);
 }
-function shop() {
-  const pips = t => `<span class="pips">${'●'.repeat(t + 1)}${'○'.repeat(2 - t)}</span>`;
+const PEDDLER_GREET = ['He has been waiting. He does not say for how long.', 'He smiles with the wrong number of teeth.', 'He lays each thing out as if it might wake.', 'He already knows what you can afford.'];
+function shop(spent) {
+  peddling = true;
+  const pips = t => `<span class="pips">${'●'.repeat(t + 1)}${'○'.repeat(2 - t)}</span>`, due = dueAt(L.day);
   const ups = Object.entries(UPGRADES).map(([k, u]) => {
     const t = L.up[k], nx = t + 1 < u.tiers.length;
     return nx
-      ? `<button type="button" data-up="${k}"${L.teeth < u.cost[t + 1] ? ' disabled' : ''}><span><b>${u.tiers[t + 1]}</b><em>${u.fx[t + 1]}</em></span><small>${pips(t)} ${u.cost[t + 1]}${TOOTH}</small></button>`
-      : `<button type="button" disabled><span><b>${u.tiers[t]}</b><em>Nothing more to want.</em></span><small>${pips(t)}</small></button>`;
+      ? `<button type="button" data-up="${k}"${L.teeth < u.cost[t + 1] ? ' disabled' : ''}><span><b>${u.tiers[t + 1]}</b><em class="say">“${u.say[t + 1]}”</em><em class="fx">${u.fx[t + 1]}</em></span><small>${pips(t)} ${u.cost[t + 1]}${TOOTH}</small></button>`
+      : `<button type="button" disabled><span><b>${u.tiers[t]}</b><em class="say">“That is all I have of that.”</em></span><small>${pips(t)}</small></button>`;
   }).join('');
-  const its = Object.entries(ITEMS).map(([k, it]) => `<button type="button" data-it="${k}"${L.teeth < it.cost ? ' disabled' : ''}><span><b>${it.name}${L.items[k] ? ` <em>×${L.items[k]}</em>` : ''}</b><em>${it.desc}</em></span><small>${it.cost}${TOOTH}</small></button>`).join('');
-  show(dock(`${dayHead('Teeth on the sill', `${L.teeth}`, `<div class="purse"><b>${TOOTH}</b></div>`)}
+  const its = Object.entries(ITEMS).map(([k, it]) => `<button type="button" data-it="${k}"${L.teeth < it.cost ? ' disabled' : ''}><span><b>${it.name}${L.items[k] ? ` <em>×${L.items[k]}</em>` : ''}</b><em class="say">“${it.say}”</em><em class="fx">${it.desc}</em></span><small>${it.cost}${TOOTH}</small></button>`).join('');
+  const page = notePage('shop');
+  show(dock(`${dayHead('The peddler', `${L.teeth}`, `<div class="purse">${spent ? `<span class="spent">−${spent}${TOOTH}</span>` : ''}<b>${TOOTH}</b></div>`)}
+    <p class="omen">${pick(PEDDLER_GREET)}</p>
+    ${page}
+    <span class="keep">Keep ${due} back. The sill takes ${due} at dawn.</span>
     <div><div class="sect">The room</div><div class="list tight">${ups}</div></div>
     <div><div class="sect">Kept things</div><div class="list tight">${its}</div></div>
     <div class="links"><button id="back" class="link" type="button">Back</button></div>`), n => {
-    n.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const k = b.dataset.up, c = UPGRADES[k].cost[L.up[k] + 1]; if (L.teeth < c) return; L.teeth -= c; L.up[k]++; saveLife(); sGood(); shop(); });
-    n.querySelectorAll('[data-it]').forEach(b => b.onclick = () => { const k = b.dataset.it; if (L.teeth < ITEMS[k].cost) return; L.teeth -= ITEMS[k].cost; L.items[k]++; saveLife(); tone(392, .3, 'sine', .04); shop(); });
-    n.querySelector('#back').onclick = () => dayPanel();
+    n.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const k = b.dataset.up, c = UPGRADES[k].cost[L.up[k] + 1]; if (L.teeth < c) return; L.teeth -= c; L.up[k]++; saveLife(); sGood(); shop(c); });
+    n.querySelectorAll('[data-it]').forEach(b => b.onclick = () => { const k = b.dataset.it, c = ITEMS[k].cost; if (L.teeth < c) return; L.teeth -= c; L.items[k]++; saveLife(); tone(392, .3, 'sine', .04); shop(c); });
+    n.querySelector('#back').onclick = () => { peddling = false; dayPanel(); };
   }, true);
 }
+// a row of teeth that lift away as you watch
+const taken = n => `<div class="rain out">${Array.from({ length: Math.min(n, 16) }, (_, i) => `<i style="--i:${i}">${TOOTH}</i>`).join('')}</div>`;
+const fxLine = s => `<span class="keep">${s}</span>`;
 function sleep() {
-  const notes = [];
+  const notes = [], b0 = snap();
   bump('body', 16 + L.up.bed * 10); bump('mind', 2 + L.up.lamp * 4);
+  const slept = [Math.round(L.body) - b0.body, Math.round(L.mind) - b0.mind];
+  notes.push(`You sleep.${fxLine(`Body +${slept[0]} · Mind +${slept[1]}`)}`);
   // the room takes its due from the sill every night, a little more as the days go on
-  const due = 1 + Math.floor(L.day / 4);
-  if (L.teeth >= due) { L.teeth -= due; notes.push(`The sill is bare. ${due} ${due === 1 ? 'tooth was' : 'teeth were'} taken in the night.`); }
-  else { const short = due - L.teeth; L.teeth = 0; cause = 'sill'; bump('mind', -(6 + short * 2)); cause = 'day'; notes.push('The sill was not enough. Something took the rest from you instead.'); }
+  const due = dueAt(L.day);
+  if (L.teeth >= due) { L.teeth -= due; notes.push(`The sill is bare. ${due} ${due === 1 ? 'tooth was' : 'teeth were'} taken in the night.${taken(due)}${fxLine(`Teeth −${due} · ${L.teeth} left`)}`); }
+  else { const short = due - L.teeth, had = L.teeth, m0 = L.mind; L.teeth = 0; cause = 'sill'; bump('mind', -(6 + short * 2)); cause = 'day'; notes.push(`The sill was not enough. Something took the rest from you instead.${had ? taken(had) : ''}${fxLine(`Teeth −${had} · Mind −${Math.round(m0 - L.mind)}`)}`); }
   if (Math.random() < [.3, .1, 0][L.up.lock]) {
-    if (L.items.salt > 0) { L.items.salt--; notes.push('The salt by the door has been scattered. Nothing else was touched.'); }
-    else if (L.teeth > 3 && Math.random() < .5) { const n = Math.ceil(L.teeth * .2); L.teeth -= n; notes.push(`Something was in the room while you slept. ${n} teeth are gone.`); }
-    else { cause = 'visit'; bump('mind', -10); cause = 'day'; notes.push('Something was in the room while you slept. It sat very close.'); }
+    const first = notePage('visit');
+    if (L.items.salt > 0) { L.items.salt--; notes.push(`The salt by the door has been scattered. Nothing else was touched.${fxLine('Salt −1')}${first}`); }
+    else if (L.teeth > 3 && Math.random() < .5) { const n = Math.ceil(L.teeth * .2); L.teeth -= n; notes.push(`Something was in the room while you slept. ${n} teeth are gone.${taken(n)}${fxLine(`Teeth −${n}`)}${first}`); }
+    else { cause = 'visit'; const m0 = L.mind; bump('mind', -10); cause = 'day'; notes.push(`Something was in the room while you slept. It sat very close.${fxLine(`Mind −${Math.round(m0 - L.mind)}`)}${first}`); }
   }
+  if (L.day === 1) notes.push(notePage('sill'));
   const rotted = [];
   L.pantry = (L.pantry || []).filter(p => { p.age = (p.age || 0) + 1; if (p.age > KEEPS) { rotted.push(INGR[p.id].name); return false; } return true; });
   if (rotted.length) notes.push(`${rotted.join(', ')} ${rotted.length > 1 ? 'have' : 'has'} gone soft and black in the pantry.`);
@@ -3653,7 +3762,7 @@ function sleep() {
 function afterNight() {
   if (L.mind <= 0) return ending();
   const notes = [];
-  if (L.body <= 0) { const lost = Math.floor(L.teeth / 2); L.teeth -= lost; notes.push(`You fall asleep on the stairs.${lost ? ` ${lost} teeth are missing when you wake.` : ''}`); }
+  if (L.body <= 0) { const lost = Math.floor(L.teeth / 2); L.teeth -= lost; notes.push(`You fall asleep on the stairs.${lost ? ` ${lost} teeth are missing when you wake.${taken(lost)}${fxLine(`Teeth −${lost}`)}` : ''}`); }
   notes.push(...sleep());
   if (L.mind <= 0) return ending();
   L.event = Math.random() < .75 ? pickEvent() : null; saveLife();
@@ -3734,6 +3843,37 @@ function drawShades(c, t, h) {
     c.fillStyle = `rgba(200,190,160,${a * .8})`; c.fillRect(x - 9, 144, 4, 3); c.fillRect(x + 5, 144, 4, 3);
   }
 }
+// the peddler: always in the corner by the bed, his wares on a rug at his feet. He casts no shadow, and his eyes
+// follow your hand. He leans in while you look over what he has.
+let peddling = false;
+function drawPeddler(c, t) {
+  const x = 300 + Math.sin(t * .5) * 1.5, lean = peddling ? 10 : 0, top = 192 + lean * .6;
+  // the rug and what is laid out on it
+  c.fillStyle = '#3a1612'; c.beginPath(); c.moveTo(214, 412); c.lineTo(370, 412); c.lineTo(384, 446); c.lineTo(200, 446); c.closePath(); c.fill();
+  c.strokeStyle = '#5a2a1a'; c.lineWidth = 2; c.setLineDash([4, 4]); c.stroke(); c.setLineDash([]);
+  c.fillStyle = '#7a5a32'; c.beginPath(); c.ellipse(232, 426, 13, 7, 0, 0, TAU); c.fill();
+  c.fillStyle = '#3a4a3a'; c.fillRect(258, 414, 9, 20); c.fillRect(260, 409, 5, 6);
+  c.fillStyle = '#d9cfb8'; c.beginPath(); c.ellipse(290, 432, 10, 5, 0, 0, TAU); c.fill();
+  c.fillStyle = '#5d5a55'; c.fillRect(318, 422, 26, 6); c.fillStyle = '#cfc3a3'; c.fillRect(352, 418, 6, 16); flame(c, 355, 418, 5, t);
+  // the pack on his back
+  c.fillStyle = '#2a2016'; c.beginPath(); c.ellipse(x - 26, top + 54, 26, 40, -.2, 0, TAU); c.fill();
+  c.strokeStyle = '#1a140e'; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 40, top + 30); c.lineTo(x - 10, top + 70); c.stroke();
+  // the coat, long to the floor
+  c.fillStyle = '#16100c'; c.beginPath(); c.moveTo(x - 24 + lean, top + 14); c.lineTo(x + 24 + lean, top + 14); c.lineTo(x + 36, 404); c.lineTo(x - 36, 404); c.closePath(); c.fill();
+  // the candle on the rug catches one edge of him
+  c.strokeStyle = 'rgba(200,140,70,.45)'; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 24 + lean, top + 14); c.lineTo(x + 36, 404); c.stroke();
+  c.strokeStyle = '#2e2219'; c.lineWidth = 2; c.beginPath(); c.moveTo(x + lean, top + 20); c.lineTo(x + 2, 404); c.stroke();
+  // a long arm and a pale hand, fingers too long
+  const hy = top + 116 + Math.sin(t * .9) * 3;
+  c.strokeStyle = '#16100c'; c.lineWidth = 12; c.beginPath(); c.moveTo(x + 18 + lean, top + 24); c.lineTo(x + 30, hy - 10); c.stroke();
+  c.strokeStyle = '#b8ab92'; c.lineWidth = 2; for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(x + 28 + k * 3, hy - 6); c.lineTo(x + 30 + k * 4, hy + 16 + Math.sin(t * 1.3 + k) * 2); c.stroke(); }
+  // the head under a wide hat, and two points of light that follow your hand
+  c.fillStyle = '#0e0a08'; c.beginPath(); c.ellipse(x + lean, top, 15, 18, 0, 0, TAU); c.fill();
+  c.fillStyle = '#1e1610'; c.fillRect(x - 13 + lean, top - 34, 26, 22); c.beginPath(); c.ellipse(x + lean, top - 12, 38, 7, -.05, 0, TAU); c.fill();
+  c.strokeStyle = 'rgba(200,140,70,.4)'; c.lineWidth = 2; c.beginPath(); c.ellipse(x + lean, top - 12, 38, 7, -.05, -.3, Math.PI * .6); c.stroke();
+  const a = Math.atan2(ptr.y - top, ptr.x - x), blink = Math.sin(t * .37) > .985;
+  if (!blink) { c.fillStyle = peddling ? '#e8c860' : '#c9b98a'; c.fillRect(x - 7 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); c.fillRect(x + 4 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); }
+}
 function drawQuarters(c, t) {
   const U = L.up;
   for (let i = 0; i < 24; i++) { const v = PLANKS[i]; c.fillStyle = `rgb(${50 + v | 0},${37 + v | 0},${27 + v | 0})`; c.fillRect(i * 38 - 40, -40, 36, 440); c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(i * 38 - 4, -40, 2, 440); }
@@ -3752,6 +3892,7 @@ function drawQuarters(c, t) {
   c.fillStyle = '#050303'; c.beginPath(); c.moveTo(470, 450); c.lineTo(610, 450); c.lineTo(640, 520); c.lineTo(440, 520); c.closePath(); c.fill();
   c.fillStyle = `rgba(120,30,16,${pulse})`; c.beginPath(); c.moveTo(480, 456); c.lineTo(600, 456); c.lineTo(626, 514); c.lineTo(454, 514); c.closePath(); c.fill();
   c.strokeStyle = '#3a2a1e'; c.lineWidth = 5; c.beginPath(); c.moveTo(470, 450); c.lineTo(610, 450); c.lineTo(640, 520); c.lineTo(440, 520); c.closePath(); c.stroke();
+  drawPeddler(c, t);
   // bed
   if (U.bed === 0) { c.fillStyle = '#4a3e22'; c.beginPath(); c.ellipse(160, 398, 120, 24, 0, Math.PI, TAU); c.fill(); c.fillStyle = '#6b5a32'; for (let k = 0; k < 40; k++) c.fillRect(50 + (k * 37) % 220, 378 + (k * 13) % 18, 26, 3); }
   else if (U.bed === 1) { c.strokeStyle = '#4a4844'; c.lineWidth = 5; c.strokeRect(50, 330, 230, 22); c.beginPath(); c.moveTo(56, 352); c.lineTo(56, 400); c.moveTo(274, 352); c.lineTo(274, 400); c.moveTo(56, 330); c.lineTo(56, 290); c.stroke(); c.fillStyle = '#5d564a'; c.fillRect(54, 322, 222, 12); c.fillStyle = '#6b6152'; c.fillRect(60, 312, 50, 12); }
@@ -4869,10 +5010,25 @@ function verdict() {
   const earned = Math.max(1, Math.round((avg / 13 + st * 1.8 + mutN + bookPay) * (1 + .2 * L.up.shrine)) + (run.ing ? run.ing.teeth : 0));
   gain(earned);
   const S = lifeStats(); S.dishes++; S.stars[st]++; S.teeth += earned; S.guests[g.id] = 1;
-  bump('body', -(17 + run.steps.length * 2 + bad * 2));
-  // the night's toll on the mind, in its parts, so the end can tell them apart
-  for (const [why, n] of [['night', 8], ['rules', mutN * 5], ['bad', bad * 6], ['shrine', L.up.shrine * 4], ['twists', twN * 3]]) if (n) { cause = why; bump('mind', -n); }
+  // the night's toll, in its parts: shown line by line on the card, and kept apart so the end can tell them apart
+  const bodyParts = [['The night', 17], [`${run.steps.length} steps`, run.steps.length * 2], ['Steps that went badly', bad * 2]];
+  const mindParts = [['night', 'The night', 8], ['rules', 'Guests bending the steps', mutN * 5], ['bad', 'Steps that went badly', bad * 6], ['shrine', 'The shrine', L.up.shrine * 4], ['twists', 'The book’s twists', twN * 3]];
+  bump('body', -bodyParts.reduce((s, p) => s + p[1], 0));
+  for (const [why, , n] of mindParts) if (n) { cause = why; bump('mind', -n); }
   cause = 'day';
+  const ingBody = run.ing ? run.ing.body : 0;
+  const row = ([label, n]) => n ? `<div class="lr"><span>${label}</span><span>−${n}</span></div>` : '';
+  const ledger = `<div class="ledger">
+    <div class="lg"><span>Teeth</span><b>${before.teeth} → <span id="tcount">${before.teeth}</span>${TOOTH}</b></div>
+    <div class="rain">${Array.from({ length: Math.min(earned, 16) }, (_, i) => `<i style="--i:${i}">${TOOTH}</i>`).join('')}${earned > 16 ? `<span class="keep">+${earned - 16}</span>` : ''}</div>
+    <div class="lr plus"><span>${g.name} paid</span><span>+${earned}</span></div>
+    <div class="lg"><span>Body</span><b>${before.body + ingBody} → ${Math.round(L.body)}</b></div>
+    ${row(['Without what the dish needed', ingBody])}${bodyParts.map(row).join('')}
+    <div class="lg"><span>Mind</span><b>${before.mind} → ${Math.round(L.mind)}</b></div>
+    ${mindParts.map(([, l, n]) => row([l, n])).join('')}
+    <p class="next">Sleep gives back Body +${16 + L.up.bed * 10} and Mind +${2 + L.up.lamp * 4}. At dawn the sill takes ${dueAt(L.day)}.</p>
+  </div>`;
+  const page = notePage('night') || (mutN ? notePage('guest') : '');
   // a good night, and Ashe shows you something new
   const learned = !run.lab && run.dish.id !== 'feast' && st >= 2 ? learnDish() : null;
   L.sharp = false; L.phase = 'up'; saveLife();
@@ -4881,11 +5037,17 @@ function verdict() {
     ${candles(st, true)}
     <p class="omen">${g.verdict[st]}</p>
     <div class="scores">${rows}</div>
-    <span class="eyebrow">${diffs(before)}</span>
+    ${ledger}
     ${opened ? '<p class="omen">Something else is on the stairs.</p>' : ''}
     ${learned ? `<p class="omen">Ashe watched you work. She shows you something new: <b>${learned.name}</b>.</p>` : ''}
+    ${page}
     <div class="btns"><button id="go" type="button">Go up</button></div></div></div>`,
-    n => { n.querySelector('#go').onclick = () => { if (L.mind <= 0) return afterNight(); L.odd = pickOdd(); saveLife(); cutscene('up', afterNight); }; });
+    n => {
+      n.querySelector('#go').onclick = () => { if (L.mind <= 0) return afterNight(); L.odd = pickOdd(); saveLife(); cutscene('up', afterNight); };
+      // the count climbs as each tooth drops in
+      const tc = n.querySelector('#tcount'), shown = Math.min(earned, 16);
+      for (let i = 1; i <= shown; i++) setTimeout(() => { if (!tc.isConnected) return; tc.textContent = before.teeth + (i === shown ? earned : i); tone(900 + i * 30, .04, 'square', .015); }, 400 + i * 120 + 250);
+    });
   if (st === 0 || st === 3) glimpse(g.id, g.verdict[st], .3, `v${st}-${g.id}`);
 }
 document.getElementById('menuBtn').onclick = () => { if (mode === 'ready' || mode === 'play' || mode === 'end') return; ac(); startDrone(); titleScreen(); };
