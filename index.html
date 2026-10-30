@@ -28,20 +28,18 @@
 }
 html, body { height: 100%; }
 [hidden] { display: none !important; }
+/* the game is the whole window: no page around it to scroll, and nothing in it to select */
 body {
-  background: var(--void); color: var(--bone); font-family: var(--body);
-  margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding-block: 16px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  box-sizing: border-box;
+  background: #000; color: var(--bone); font-family: var(--body);
+  margin: 0; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
+input, textarea { user-select: text; -webkit-user-select: text; }
 .stage {
-  position: relative; width: 100%; max-width: 960px; aspect-ratio: 800 / 560;
-  max-height: calc(100vh - 80px); container-type: inline-size; overflow: hidden;
-  box-shadow: 0 0 0 1px #2a241e, 0 30px 80px #000;
+  position: relative; width: min(100vw, 100vh * 800 / 560); aspect-ratio: 800 / 560;
+  container-type: inline-size; overflow: hidden; background: var(--void);
 }
-@supports (max-height: 1dvh) { .stage { max-height: calc(100dvh - 80px); } }
+@supports (height: 1dvh) { body { height: 100dvh; } .stage { width: min(100vw, 100dvh * 800 / 560); } }
 canvas#cv { width: 100%; height: 100%; display: block; touch-action: none; cursor: none; }
 /* the room and title panels let the pointer through to the stage, so your hand follows it there */
 .overlay.docked, .overlay.titled { pointer-events: none; }
@@ -71,6 +69,8 @@ canvas#hand { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 
 .overlay {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   padding: 3cqw; background: rgba(5, 4, 3, .62); overflow-y: auto; overflow-x: hidden;
+  /* its own layer, so the game redrawing underneath every frame does not repaint the cards */
+  will-change: transform;
 }
 .card {
   background:
@@ -168,16 +168,32 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .grade { font-family: var(--display); font-size: clamp(30px, 6.4cqw, 58px); line-height: 1; }
 .scores { display: flex; gap: 8px; flex-wrap: wrap; font-family: var(--pix); font-size: clamp(15px, 2cqw, 18px); }
 .scores span { border: 1px solid var(--edge); padding: 0 .5em; font-variant-numeric: tabular-nums; }
-.bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 960px; gap: 12px; flex-wrap: wrap; }
-.bar small { color: #5e564a; font-family: var(--pix); font-size: 16px; }
-.bar button { font-size: 16px; padding: .1em .8em; background: #15120f; border-color: var(--edge); }
+/* menu, sound and full screen sit in the stage's bottom-left corner, dim until you reach for them */
+.bar { position: absolute; left: 1.2cqw; bottom: 1.2cqw; z-index: 7; display: flex; gap: 6px; opacity: .45; transition: opacity .2s; }
+.bar:hover, .bar:focus-within { opacity: 1; }
+.bar button { font-size: clamp(13px, 1.6cqw, 17px); padding: .05em .6em; background: rgba(21,18,15,.85); border-color: var(--edge); box-shadow: 2px 2px 0 #000; }
 /* the room: a narrow ledger docked at the right, ruled rather than boxed */
 .overlay.docked { justify-content: flex-end; align-items: flex-start; background: linear-gradient(90deg, rgba(5,4,3,0) 35%, rgba(5,4,3,.6)); }
-.card.dock { grid-template-columns: 1fr; width: min(100%, 320px); margin: auto 0; padding: 18px 20px 20px; }
+.card.dock { grid-template-columns: 1fr; width: min(100%, max(320px, 36cqw)); margin: auto 0; padding: 18px 20px 20px; }
+/* the shop spreads his wares in two rows side by side, so the whole pack fits without scrolling */
+/* wide, but stopping short of the peddler, who stands at 37.5% across the room */
+.card.dock.shopcard { width: min(100%, max(320px, 53cqw)); box-sizing: border-box; }
+.shopcard .list.tight button { padding: .2em .25em; }
+.shopcard .list button em { line-height: 1.25; }
+.shopcard .list button em.say { font-size: 13px; }
+.shopcard .list button em.fx { font-size: 14px; }
+.card.dock.shopcard { padding: 12px 18px 14px; }
+.card.dock.shopcard .txt { gap: 6px; }
+.shopcard .omen { font-size: clamp(15px, 2.2cqw, 20px); }
+.shopcard .dayhead { padding-bottom: 6px; }
+.shopcard .dayhead .num { font-size: 38px; }
+@media (min-width: 641px) { .overlay.docked { padding-block: 1.6cqw; } }
+.wares { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+@container (max-width: 640px) { .wares { grid-template-columns: 1fr; } }
 .list.tight button { padding: .32em .25em; }
 .list.tight button b { font-size: 16px; }
 .list.tight button em { font-size: 12px; }
-.card.dock .txt { gap: 14px; }
+.card.dock .txt { gap: 10px; }
 .dayhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--edge); }
 .dayhead .num { font-family: var(--display); font-size: 50px; line-height: .78; color: var(--bone); }
 .dayhead .num small { display: block; font-family: var(--pix); font-size: 14px; letter-spacing: .24em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
@@ -241,6 +257,10 @@ button:disabled { opacity: .32; cursor: not-allowed; }
 .page.found { animation: pagein 1s ease both; }
 @keyframes pagein { from { opacity: 0; transform: translateY(10px) rotate(calc(var(--tilt, 0) * 1deg - 4deg)); } }
 /* the night's account: what it took and what it paid, line by line */
+/* the night's verdict: what the guest said on one side, what it cost on the other */
+.card.verdict { width: min(100%, 900px); grid-template-columns: auto 1fr 1fr; align-items: start; }
+@container (max-width: 760px) { .card.verdict { grid-template-columns: auto 1fr; } .card.verdict > .txt:last-child { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .card.verdict { grid-template-columns: 1fr; } }
 .ledger { display: grid; gap: 2px; font-family: var(--pix); font-size: 16px; color: var(--dim); }
 .ledger .lg { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; padding-bottom: 2px; border-bottom: 1px solid var(--edge); color: var(--bone); letter-spacing: .12em; text-transform: uppercase; }
 .ledger .lg b { font-weight: 400; letter-spacing: 0; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
@@ -278,6 +298,10 @@ button:disabled { opacity: .32; cursor: not-allowed; }
   .overlay.titled { justify-content: center; align-items: flex-end; background: linear-gradient(180deg, rgba(5,4,3,.1) 20%, rgba(5,4,3,.92) 60%); }
   .title { margin: 0 auto; width: 100%; }
   canvas#cu { position: fixed; z-index: 9; object-fit: contain; background: #000; }
+  /* on a phone the picture sits at the top and the cards rise under it; the corner buttons ride the top edge, above the cards */
+  body { align-items: flex-start; }
+  .bar { position: fixed; left: auto; bottom: auto; right: max(8px, env(safe-area-inset-right, 0px)); top: max(8px, env(safe-area-inset-top, 0px)); z-index: 6; opacity: .8; }
+  .overlay { padding-top: max(52px, env(safe-area-inset-top, 0px)); }
 }
 </style>
 
@@ -286,14 +310,12 @@ button:disabled { opacity: .32; cursor: not-allowed; }
   <div class="overlay" id="ov"></div>
   <canvas id="cu" hidden aria-label="Close-up"></canvas>
   <div id="veil" aria-hidden="true"></div>
-  <canvas id="hand" aria-hidden="true"></canvas>
-</div>
-<div class="bar">
-  <small>mouse / touch / space</small>
-  <div style="display:flex;gap:8px">
+  <div class="bar">
     <button id="menuBtn" type="button">Menu</button>
     <button id="snd" type="button">Sound on</button>
+    <button id="fsBtn" type="button" hidden>Full screen</button>
   </div>
+  <canvas id="hand" aria-hidden="true"></canvas>
 </div>
 
 <!-- matter.js: 2D physics for the games that want real weight (the well's line and what is on it) -->
@@ -367,6 +389,12 @@ const sChime = () => { tone(1567, 1.2, 'sine', .025); tone(1661, 1.2, 'sine', .0
 const sScream = () => { tone(rnd(500, 700), .6, 'sawtooth', .04, -300); noise(.5, .05, 1800); };
 const sThump = () => { tone(52, .18, 'sine', .14, -10); setTimeout(() => tone(46, .16, 'sine', .1, -10), 150); };
 document.getElementById('snd').onclick = e => { muted = !muted; if (master) master.gain.value = muted ? 0 : 1; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
+const fsBtn = document.getElementById('fsBtn');
+if (document.fullscreenEnabled) {
+  fsBtn.hidden = false;
+  fsBtn.onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {});
+  document.addEventListener('fullscreenchange', () => { fsBtn.textContent = document.fullscreenElement ? 'Window' : 'Full screen'; });
+}
 
 /* ---------- storage ---------- */
 let best = {};
@@ -3293,10 +3321,12 @@ function hueMatrix(deg, sat) {
   for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) out.push(S[r * 3] * M[col] + S[r * 3 + 1] * M[3 + col] + S[r * 3 + 2] * M[6 + col]);
   return out;
 }
+// grain comes from a table read at a random offset each frame, not a fresh random number for every pixel
+const GRAIN = Float32Array.from({ length: 65536 }, () => Math.random() - .5);
 function postFX(c, w, h, grain = 16, mat = null) {
-  const id = c.getImageData(0, 0, w, h), d = id.data;
+  const id = c.getImageData(0, 0, w, h), d = id.data, o = Math.random() * 65536 | 0;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const i = (y * w + x) * 4, b = (BAYER[(y & 3) * 4 + (x & 3)] / 16 - .5) * 9, n = (Math.random() - .5) * grain;
+    const p = y * w + x, i = p * 4, b = (BAYER[(y & 3) * 4 + (x & 3)] / 16 - .5) * 9, n = GRAIN[(o + p) & 65535] * grain;
     let r = d[i], g = d[i + 1], bl = d[i + 2];
     if (mat) { const r0 = r, g0 = g; r = mat[0] * r0 + mat[1] * g0 + mat[2] * bl; g = mat[3] * r0 + mat[4] * g0 + mat[5] * bl; bl = mat[6] * r0 + mat[7] * g0 + mat[8] * bl; }
     const l = r * .3 + g * .59 + bl * .11;
@@ -3311,7 +3341,11 @@ const TILE = Array.from({ length: 20 * 12 }, () => rnd(-10, 10));
 const STAINS = Array.from({ length: 26 }, () => ({ x: rnd(0, W), y: rnd(40, 470), r: rnd(12, 70), a: rnd(.12, .3), c: pick(['30,22,14', '60,16,10', '44,48,24']) }));
 const CRACKS = Array.from({ length: 9 }, () => { let x = rnd(0, 640), y = rnd(50, 420); const p = [[x, y]]; for (let k = 0; k < 6; k++) { x += rnd(-25, 25); y += rnd(5, 30); p.push([x, y]); } return p; });
 let flick = 1;
-function drawRoom(c, t) {
+// the walls, floor and doorway never move, so they are painted once and stamped down each frame
+let roomCache = null;
+function roomStill() {
+  const rc = document.createElement('canvas'); rc.width = (W + 80) * LS; rc.height = (H + 80) * LS;
+  const c = rc.getContext('2d'); c.setTransform(LS, 0, 0, LS, 40 * LS, 40 * LS);
   const gr = c.createLinearGradient(0, 0, 0, 480); gr.addColorStop(0, '#2e2b23'); gr.addColorStop(1, '#3a362b'); c.fillStyle = gr; c.fillRect(-40, -40, W + 80, 520);
   for (let ty = 0; ty < 11; ty++) for (let tx = 0; tx < 18; tx++) { const v = TILE[ty * 20 + tx]; c.fillStyle = `rgb(${58 + v | 0},${56 + v | 0},${44 + v | 0})`; c.fillRect(tx * 46 + 2, ty * 46 + 2, 42, 42); }
   for (const s of STAINS) { const g2 = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r); g2.addColorStop(0, `rgba(${s.c},${s.a})`); g2.addColorStop(1, `rgba(${s.c},0)`); c.fillStyle = g2; c.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2); }
@@ -3319,11 +3353,15 @@ function drawRoom(c, t) {
   c.fillStyle = '#020202'; c.fillRect(660, 36, 124, 444);
   c.strokeStyle = 'rgba(40,34,28,.6)'; c.lineWidth = 3; for (let i = 0; i < 9; i++) { const y = 470 - i * 34; c.beginPath(); c.moveTo(672 + i * 3, y); c.lineTo(772 - i * 3, y); c.stroke(); }
   c.strokeStyle = '#24170f'; c.lineWidth = 12; c.strokeRect(654, 30, 136, 460);
+  c.fillStyle = '#17110d'; c.fillRect(-40, 480, W + 80, 120); c.fillStyle = '#3a2a1e'; c.fillRect(-40, 480, W + 80, 4);
+  c.fillStyle = 'rgba(70,15,10,.4)'; c.beginPath(); c.ellipse(230, 510, 60, 10, 0, 0, TAU); c.ellipse(560, 530, 40, 7, 0, 0, TAU); c.fill();
+  return rc;
+}
+function drawRoom(c, t) {
+  c.drawImage(roomCache || (roomCache = roomStill()), -40, -40, W + 80, H + 80);
   c.strokeStyle = '#1a1410'; c.lineWidth = 2; c.beginPath(); c.moveTo(400, 0); c.lineTo(400 + Math.sin(t * .7) * 3, 52); c.stroke();
   c.fillStyle = `rgb(${(170 + 70 * flick) | 0},${(130 + 60 * flick) | 0},${(70 + 40 * flick) | 0})`; c.beginPath(); c.arc(400 + Math.sin(t * .7) * 3, 60, 9, 0, TAU); c.fill();
   c.fillStyle = '#18100c'; for (const hx of [70, 120]) { c.fillRect(hx - 1, 0, 2, 40); c.beginPath(); c.ellipse(hx, 80 + Math.sin(t * .5 + hx) * 2, 16, 40, Math.sin(t * .4 + hx) * .08, 0, TAU); c.fill(); }
-  c.fillStyle = '#17110d'; c.fillRect(-40, 480, W + 80, 120); c.fillStyle = '#3a2a1e'; c.fillRect(-40, 480, W + 80, 4);
-  c.fillStyle = 'rgba(70,15,10,.4)'; c.beginPath(); c.ellipse(230, 510, 60, 10, 0, 0, TAU); c.ellipse(560, 530, 40, 7, 0, 0, TAU); c.fill();
 }
 function drawLight(c, lx = 400, ly = 70, r0 = 30, r1 = 560, dy = 230) {
   const g2 = c.createRadialGradient(lx, ly, r0, lx, ly + dy, r1);
@@ -3722,11 +3760,11 @@ function shop(spent) {
   const page = notePage('shop');
   show(dock(`${dayHead('The peddler', `${L.teeth}`, `<div class="purse">${spent ? `<span class="spent">−${spent}${TOOTH}</span>` : ''}<b>${TOOTH}</b></div>`)}
     <p class="omen">${pick(PEDDLER_GREET)}</p>
-    ${page}
     <span class="keep">Keep ${due} back. The sill takes ${due} at dawn.</span>
-    <div><div class="sect">The room</div><div class="list tight">${ups}</div></div>
-    <div><div class="sect">Kept things</div><div class="list tight">${its}</div></div>
+    <div class="wares"><div><div class="sect">The room</div><div class="list tight">${ups}</div></div>
+    <div style="display:grid;gap:14px"><div><div class="sect">Kept things</div><div class="list tight">${its}</div></div>${page}</div></div>
     <div class="links"><button id="back" class="link" type="button">Back</button></div>`), n => {
+    n.classList.add('shopcard');
     n.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const k = b.dataset.up, c = UPGRADES[k].cost[L.up[k] + 1]; if (L.teeth < c) return; L.teeth -= c; L.up[k]++; saveLife(); sGood(); shop(c); });
     n.querySelectorAll('[data-it]').forEach(b => b.onclick = () => { const k = b.dataset.it, c = ITEMS[k].cost; if (L.teeth < c) return; L.teeth -= c; L.items[k]++; saveLife(); tone(392, .3, 'sine', .04); shop(c); });
     n.querySelector('#back').onclick = () => { peddling = false; dayPanel(); };
@@ -3874,8 +3912,11 @@ function drawPeddler(c, t) {
   const a = Math.atan2(ptr.y - top, ptr.x - x), blink = Math.sin(t * .37) > .985;
   if (!blink) { c.fillStyle = peddling ? '#e8c860' : '#c9b98a'; c.fillRect(x - 7 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); c.fillRect(x + 4 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); }
 }
-function drawQuarters(c, t) {
-  const U = L.up;
+// the room's walls, window and floor are still, so they are painted once like the kitchen's
+let quartersCache = null;
+function quartersStill() {
+  const rc = document.createElement('canvas'); rc.width = (W + 80) * LS; rc.height = (H + 80) * LS;
+  const c = rc.getContext('2d'); c.setTransform(LS, 0, 0, LS, 40 * LS, 40 * LS);
   for (let i = 0; i < 24; i++) { const v = PLANKS[i]; c.fillStyle = `rgb(${50 + v | 0},${37 + v | 0},${27 + v | 0})`; c.fillRect(i * 38 - 40, -40, 36, 440); c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(i * 38 - 4, -40, 2, 440); }
   for (const s of STAINS.slice(0, 12)) { const y = s.y * .8, g2 = c.createRadialGradient(s.x, y, 0, s.x, y, s.r); g2.addColorStop(0, `rgba(${s.c},${s.a})`); g2.addColorStop(1, `rgba(${s.c},0)`); c.fillStyle = g2; c.fillRect(s.x - s.r, y - s.r, s.r * 2, s.r * 2); }
   // boarded window
@@ -3887,6 +3928,11 @@ function drawQuarters(c, t) {
   c.fillStyle = '#20170f'; c.fillRect(-40, 400, W + 80, 200);
   c.fillStyle = '#17100a'; for (let k = 0; k < 8; k++) c.fillRect(-40, 412 + k * 22, W + 80, 2);
   c.fillStyle = '#3a2a1e'; c.fillRect(-40, 398, W + 80, 4);
+  return rc;
+}
+function drawQuarters(c, t) {
+  const U = L.up;
+  c.drawImage(quartersCache || (quartersCache = quartersStill()), -40, -40, W + 80, H + 80);
   // the trapdoor to the kitchen
   const pulse = .3 + .2 * Math.sin(t * 1.3);
   c.fillStyle = '#050303'; c.beginPath(); c.moveTo(470, 450); c.lineTo(610, 450); c.lineTo(640, 520); c.lineTo(440, 520); c.closePath(); c.fill();
@@ -5032,16 +5078,16 @@ function verdict() {
   // a good night, and Ashe shows you something new
   const learned = !run.lab && run.dish.id !== 'feast' && st >= 2 ? learnDish() : null;
   L.sharp = false; L.phase = 'up'; saveLife();
-  show(`<div class="card">${P(g.id)}<div class="txt">
+  show(`<div class="card verdict">${P(g.id)}<div class="txt">
     <span class="eyebrow">${run.dish.name}</span>
     ${candles(st, true)}
     <p class="omen">${g.verdict[st]}</p>
     <div class="scores">${rows}</div>
-    ${ledger}
     ${opened ? '<p class="omen">Something else is on the stairs.</p>' : ''}
     ${learned ? `<p class="omen">Ashe watched you work. She shows you something new: <b>${learned.name}</b>.</p>` : ''}
     ${page}
-    <div class="btns"><button id="go" type="button">Go up</button></div></div></div>`,
+    <div class="btns"><button id="go" type="button">Go up</button></div></div>
+    <div class="txt">${ledger}</div></div>`,
     n => {
       n.querySelector('#go').onclick = () => { if (L.mind <= 0) return afterNight(); L.odd = pickOdd(); saveLife(); cutscene('up', afterNight); };
       // the count climbs as each tooth drops in
@@ -5252,7 +5298,13 @@ function drawGlass(c, t) {
 }
 
 /* ---------- loop ---------- */
-let lastT = performance.now(), TT = 0;
+let lastT = performance.now(), TT = 0, scanCache = null;
+function scanlines() {
+  const s = document.createElement('canvas'); s.width = W * DPR; s.height = H * DPR;
+  const x = s.getContext('2d'); x.scale(DPR, DPR); x.fillStyle = 'rgba(0,0,0,.18)';
+  for (let y = 0; y < LH; y++) x.fillRect(0, y * 2.5 + 1.6, W, .8);
+  return s;
+}
 const ROLE = () => run && run.guest ? run.guest.id : null;
 function frame(now) {
   const dt = Math.min(.05, (now - lastT) / 1000); lastT = now; TT += dt;
@@ -5305,7 +5357,7 @@ function frame(now) {
   postFX(c, LW, LH, 16, twx && (twx.hue || twx.sat !== 1) && mode !== 'cut' ? (twx.mat || (twx.mat = hueMatrix(twx.hue, twx.sat))) : null);
   const d = dctx; d.setTransform(DPR, 0, 0, DPR, 0, 0); d.imageSmoothingEnabled = false;
   d.drawImage(lc, 0, 0, W, H);
-  d.fillStyle = 'rgba(0,0,0,.18)'; for (let y = 0; y < LH; y++) d.fillRect(0, y * 2.5 + 1.6, W, .8);
+  d.drawImage(scanCache || (scanCache = scanlines()), 0, 0, W, H);
   if (flashR > 0) { d.fillStyle = `rgba(140,10,6,${flashR})`; d.fillRect(0, 0, W, H); }
   for (const [s, x, y, size, col, align] of TQ) { d.font = `${size}px VT323, monospace`; d.textAlign = align; d.fillStyle = '#000'; d.fillText(s, x + 2, y + 2); d.fillStyle = col; d.fillText(s, x, y); }
   if (game && mode !== 'idle') {
