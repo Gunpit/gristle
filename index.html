@@ -50,6 +50,8 @@ canvas#cu { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8;
 #veil.on { pointer-events: auto; }
 /* the end card: each line comes up out of the dark after the one before */
 .card.end { max-width: 640px; }
+/* the way out: daylight behind the last card */
+.overlay.dawn { background: radial-gradient(ellipse at 50% 45%, #fff8e6 30%, #e8d9b0 75%, #b8a57c); }
 .card.end .txt > * { opacity: 0; animation: rise 1.4s ease forwards; animation-delay: calc(var(--i, 0) * .45s + .3s); }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .card.end .why { font-family: var(--display); font-size: clamp(22px, 3.6cqw, 32px); color: var(--bone); margin: 0; }
@@ -121,8 +123,43 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .dish .rating { color: #a3241a; letter-spacing: 3px; }
 /* what a dish needs, on the menu: the two ingredients, lit when they are on the shelf */
 .needs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.needs i { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-family: var(--pix); font-size: 14px; padding: 0 .4em 0 0; border: 1px dashed var(--edge); color: #6b6152; }
-.needs i img { width: 22px; height: 22px; image-rendering: pixelated; opacity: .35; filter: grayscale(1); }
+.needs i { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-family: var(--pix); font-size: 15px; padding: 0 .4em 0 0; border: 1px dashed #6b5a42; color: #a89c88; }
+.needs i img { width: 22px; height: 22px; image-rendering: pixelated; opacity: .4; filter: grayscale(1); }
+.needs i.soft { border-color: #a3241a; color: #d98a7c; }
+/* the shelf as a list: on the wall of the room, and across the top of the recipes */
+.stock { display: grid; gap: 2px; font-family: var(--pix); }
+.stock .sect { margin: 0 0 2px; color: #a89c88; }
+.stockrow { display: flex; align-items: center; gap: 5px; font-size: 15px; line-height: 1; color: var(--bone); padding: 1px 4px 1px 0; transition: background .15s; }
+.stockrow img { width: 22px; height: 22px; image-rendering: pixelated; flex: none; }
+.stockrow b { font-weight: 400; white-space: nowrap; }
+.stockrow .pip { font-style: normal; font-size: 9px; letter-spacing: 1px; color: #c9b98e; white-space: nowrap; }
+.stockrow.q2 .pip { color: #e8c860; }
+.stockrow em { font-style: normal; color: #a89c88; margin-left: auto; padding-left: 8px; white-space: nowrap; }
+.stockrow.soft em { color: #e0604a; }
+.stockrow.soft img { filter: brightness(.6) sepia(.6); }
+.stockrow.none em { margin: 0; padding: 0; }
+.stockrow.lit { background: rgba(157,163,90,.3); }
+.stock.onwall { position: absolute; left: 1.4cqw; top: 1.4cqw; width: min(26cqw, 230px); min-width: 180px; padding: 8px 10px; background: rgba(8,6,5,.82); border: 1px solid var(--edge); box-shadow: 3px 3px 0 #000; }
+.stock.across { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: center; padding-bottom: 6px; border-bottom: 1px solid var(--edge); }
+.stock.across .sect { width: 100%; }
+.stock.across .stockrow em { margin-left: 2px; }
+/* a phone has no wall to spare: it keeps the row of little jars in the card instead */
+@media (max-width: 640px) { .stock.onwall { display: none; } }
+@media (min-width: 641px) { .card.dock .vitals ~ .shelf.small { display: none; } }
+/* with a long menu the cards drop their pictures, so the whole book fits on the page */
+.menu .dish canvas { aspect-ratio: 16 / 8; object-fit: cover; }
+.card.wide.manycard { width: 100%; box-sizing: border-box; padding: 10px 14px; }
+.menu.many { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 5px; }
+.menu.many .dish { padding: 4px 6px; gap: 2px; position: relative; align-content: start; }
+.menu.many .dish strong { font-size: 15px; padding-right: 40px; }
+.menu.many .dish .needs { gap: 2px; }
+.menu.many .dish .needs i { font-size: 13px; }
+.menu.many .dish .needs i img { width: 15px; height: 15px; }
+.menu.many .dish .needs b { display: none; }
+.menu.many .dish .candles { position: absolute; right: 5px; top: 5px; transform: scale(.55); transform-origin: top right; }
+.menu.many .dish canvas, .menu.many .dish > span:not(.needs):not(.candles) { display: none; }
+.menu.many .dish.unknown { min-height: 0; }
+.menu.many .dish.unknown > span { display: block; }
 .needs i.have { border-style: solid; border-color: #8c826f; color: var(--bone); }
 .needs i.have img { opacity: 1; filter: none; }
 .needs b { font-family: var(--pix); font-weight: 400; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: #9da35a; }
@@ -916,7 +953,7 @@ function Stir(m, kind) {
 }
 
 // how long a mold must be left alone before it seals: long enough to wait out a shuddering pipe and pour again
-const SEAL_WAIT = 2.2;
+const SEAL_WAIT = 1.6;
 // THE MOLDS / THE BROTH: hold to pour, let go to stop; it seals once you leave it alone. Pressure wanders. When the pipe shudders, stop, or it spits.
 function FillClassic(m, kind) {
   const inv = m === 'invert', broth = kind === 'broth';
@@ -1703,16 +1740,30 @@ const POINT_TILT = -.42;
 const TIP_TILT = 2.55;
 function pointShape(c, s = 1) {
   c.save(); c.scale(s, s); c.rotate(POINT_TILT);
+  // one outline, tip to wrist: a long thin finger, three knuckles folded under it, the heel of the palm, the wrist, the thumb
   const p = new Path2D();
-  p.moveTo(-2.4, 2.5); p.arc(0, 2.5, 2.4, Math.PI, 0); p.lineTo(2.4, 15); p.lineTo(-2.4, 15); p.closePath(); // the index finger
-  for (const [x, y] of [[4.4, 15.5], [7.8, 16.8], [10.6, 18.8]]) { p.moveTo(x + 2.6, y); p.arc(x, y, 2.6, 0, TAU); } // the curled fingers
-  p.moveTo(12.5, 22); p.ellipse(5, 22, 7.5, 7.5, 0, 0, TAU); // the back of the hand
-  p.moveTo(-1.6, 19); p.ellipse(-3.6, 19, 2.4, 5, -.6, 0, TAU); // the thumb
-  p.rect(1, 26, 9, 8); // the wrist
-  c.lineWidth = 2.4; c.strokeStyle = 'rgba(10,6,4,.85)'; c.stroke(p);
-  c.fillStyle = '#b8aa9c'; c.fill(p);
-  c.fillStyle = '#7a6a5e'; c.fillRect(-1.4, .8, 2.8, 2.2);
-  c.fillStyle = 'rgba(40,30,24,.5)'; c.fillRect(2.6, 14, 1, 6); c.fillRect(6.2, 15.5, 1, 5);
+  p.moveTo(-1.7, 2); p.quadraticCurveTo(0, -.8, 1.7, 2);
+  p.lineTo(2, 7); p.lineTo(2.3, 13);
+  p.quadraticCurveTo(5.4, 11.8, 6, 15.2); p.quadraticCurveTo(8.8, 14.4, 9.3, 17.4); p.quadraticCurveTo(11.8, 17, 12, 20.2);
+  p.quadraticCurveTo(12.4, 25, 10.6, 29); p.lineTo(9.6, 36); p.lineTo(9.8, 42);
+  p.lineTo(1.2, 42); p.lineTo(1.4, 35);
+  p.quadraticCurveTo(-.8, 31, -3.2, 26.5); p.lineTo(-6.4, 20.6); p.quadraticCurveTo(-7, 18.4, -5.2, 18.2); p.quadraticCurveTo(-3.6, 18.2, -2.8, 21); p.lineTo(-2.1, 21.8);
+  p.lineTo(-2.2, 13); p.lineTo(-1.9, 7); p.closePath();
+  c.lineWidth = 1.6; c.strokeStyle = 'rgba(10,6,4,.9)'; c.stroke(p);
+  c.fillStyle = '#a89a88'; c.fill(p);
+  c.save(); c.clip(p);
+  // the shadowed side of it, and the veins and tendons on the back
+  c.fillStyle = 'rgba(50,36,28,.42)'; c.beginPath(); c.moveTo(13, 19); c.lineTo(13, 44); c.lineTo(6.5, 44); c.lineTo(7.5, 24); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(60,48,44,.5)'; c.lineWidth = .7; c.beginPath(); c.moveTo(1, 18); c.lineTo(3.4, 34); c.moveTo(4.6, 19); c.lineTo(5.2, 33); c.stroke();
+  // the folds between the curled fingers
+  c.strokeStyle = 'rgba(30,20,16,.75)'; c.lineWidth = .9; c.beginPath(); c.moveTo(2.3, 13); c.lineTo(2.5, 20); c.moveTo(6, 15.2); c.lineTo(6, 21); c.moveTo(9.3, 17.4); c.lineTo(9, 22); c.stroke();
+  // the creases at the finger's joints, the grimy nail, and the thumbnail
+  c.lineWidth = .6; c.beginPath(); c.moveTo(-1.8, 6.4); c.lineTo(1.8, 6.4); c.moveTo(-2, 10.8); c.lineTo(2.1, 10.8); c.stroke();
+  c.fillStyle = '#d2c6ae'; c.fillRect(-1.1, .4, 2.2, 2.4); c.fillStyle = '#3a2a20'; c.fillRect(-1.1, .2, 2.2, .6);
+  c.fillStyle = '#c8bca6'; c.fillRect(-6, 18.8, 1.8, 1.8);
+  // a rag of a sleeve at the wrist
+  c.fillStyle = '#2a2016'; c.beginPath(); c.moveTo(0, 38.5); c.lineTo(3, 37.6); c.lineTo(5.4, 38.8); c.lineTo(8, 37.4); c.lineTo(11, 38.6); c.lineTo(11, 44); c.lineTo(0, 44); c.closePath(); c.fill();
+  c.restore();
   c.restore();
 }
 function drawHand(c, x, y, s = 1.4, alpha = 1, mirrored = false) {
@@ -2229,209 +2280,251 @@ function ShakeClassic() {
   return g;
 }
 
-// THE WELL, in physics: a side view down the shaft. Your hand holds a real line, a chain of links with bait on the end,
-// hanging into black water where things swim. When one takes the bait the line jerks: click to set the hook. Then the
-// fight has a rhythm: when it runs, let go and the line pays out; when it tires, hold to reel it in. Reel against a run
-// and the line strains toward snapping, and the pull drags your hand down to the water; if the water gets your hand, it
-// takes it under. Lift what you catch clear of the water to land it.
+// THE WELL: cast, wait, strike, reel. Hold to let the line down and let go at the depth you want; each depth has its own
+// catch, and you can see them swimming. When the float goes under, click. Then the fight: a column at the right holds the
+// thing on your line. Hold to lift your grip, let go to let it sink. While your grip is on it, it comes up. Nothing snaps
+// and nothing hurts you. The worst that happens is it gets away. Time stands still from the bite to the landing.
 const FISHES = {
-  eel: { str: 1, segs: 7, r: 7, run: [1.1, 1.7], rest: [1.4, 2.1], col: [128, 138, 118], tell: .5 },
-  lamprey: { str: 1.3, segs: 5, r: 9, run: [.8, 1.2], rest: [1.1, 1.7], col: [104, 98, 106], tell: .4 },
-  worm: { str: .75, segs: 5, r: 10, run: [.6, 1], rest: [1.6, 2.4], col: [178, 122, 116], tell: .55 },
-  hand: { str: 1.5, segs: 6, r: 8, run: [1.2, 1.8], rest: [1, 1.5], col: [196, 200, 190], tell: .45 }
+  worm: { len: 6, r: 9, size: [6, 13], col: [178, 122, 116], gain: .15, drain: .07, hold: [.9, 1.6], jump: .28, rate: 2.2, tooth: .25, sp: 26 },
+  eel: { len: 9, r: 6, size: [14, 30], col: [128, 138, 118], gain: .14, drain: .08, hold: [.6, 1.2], jump: .4, rate: 3.2, tooth: .4, sp: 46 },
+  lamprey: { len: 7, r: 8, size: [18, 36], col: [104, 98, 106], gain: .13, drain: .08, hold: [1.1, 1.9], jump: .5, rate: 5, tooth: .55, sp: 36 },
+  hand: { len: 6, r: 8, size: [20, 40], col: [196, 200, 190], gain: .12, drain: .08, hold: [.7, 1.2], jump: .55, rate: 4.5, tooth: 1, sp: 20 }
 };
+function drawFishBody(c, f, x, y, ang, t, a = 1, s = 1, wig = 1) {
+  const [r0, g0, b0] = f.col, n = f.len, r = f.r;
+  c.save(); c.translate(x, y); c.rotate(ang); c.scale(s, s * (Math.cos(ang) < 0 ? -1 : 1)); c.globalAlpha = a;
+  for (let i = n - 1; i >= 0; i--) {
+    const k = i / n, px = -i * r * 1.1, py = Math.sin(t * 7 - i * .8 + f.ph) * k * r * .9 * wig;
+    c.fillStyle = `rgb(${r0},${g0},${b0})`; c.beginPath(); c.arc(px, py, r * (1 - k * .5) * 1.25, 0, TAU); c.fill();
+    if (f.id === 'worm' && i % 2) { c.strokeStyle = 'rgba(80,30,30,.6)'; c.lineWidth = 1.5; c.stroke(); }
+  }
+  if (f.id === 'lamprey') { c.fillStyle = '#3c1418'; c.beginPath(); c.arc(6, 0, 9, 0, TAU); c.fill(); c.strokeStyle = '#e6dcb4'; c.lineWidth = 1.5; for (let k = 0; k < 10; k++) { const q = k / 10 * TAU; c.beginPath(); c.moveTo(6 + Math.cos(q) * 8, Math.sin(q) * 8); c.lineTo(6 + Math.cos(q) * 4, Math.sin(q) * 4); c.stroke(); } }
+  else if (f.id === 'hand') { c.rotate(Math.PI / 2); openHand(c, 1.2); c.rotate(-Math.PI / 2); }
+  else { c.fillStyle = '#e6e6d2'; c.fillRect(2, -5, 3, 3); c.fillRect(2, 3, 3, 3); }
+  c.restore();
+}
 function Fish() {
-  if (!window.Matter) return { dur: 3, now: 0, got: [], ownCursor: false, update(dt) { this.now += dt; }, score: () => 0, yields: () => [], draw(c) { c.fillStyle = '#05080a'; c.fillRect(0, 40, W, 480); T('the well is quiet tonight', 400, 300, 30, '#8c826f'); } };
-  const { Engine, Bodies, Body, Composite, Constraint } = Matter;
-  const WY = 250, X0 = 190, X1 = 610, FLOOR = 535, N = 16, G = .001;
-  const engine = Engine.create(), world = engine.world; engine.gravity.y = 1;
-  const SOFT = { group: -1 };  // the line, the hand and the things in the water pass through each other; only the stone stops them
-  Composite.add(world, [Bodies.rectangle(X0 - 30, 300, 60, 600, { isStatic: true }), Bodies.rectangle(X1 + 30, 300, 60, 600, { isStatic: true }), Bodies.rectangle(400, FLOOR + 30, 600, 60, { isStatic: true })]);
-  const g = { dur: 40, now: 0, got: [], phase: 'wait', segLen: 14, tension: 0, pen: 0, under: false, underT: 0, mash: 0, mashT: 0, biteT: 0, msg: '', msgT: 0, fish: [], hooked: null, spawnT: .6, splash: [], told: {}, ownCursor: true };
-  const say = (s, d = 1.4) => { g.msg = s; g.msgT = d; };
-  const once = (k, s) => { if (!g.told[k]) { g.told[k] = 1; say(s, 1.8); } };
-  // your hand: held to the pointer by a spring, so a strong pull on the line can drag it
-  const hand = Bodies.circle(400, 110, 8, { collisionFilter: SOFT, frictionAir: .3, density: .02 });
-  const grip = Constraint.create({ pointA: { x: 400, y: 110 }, bodyB: hand, stiffness: .06, damping: .2, length: 0 });
-  Composite.add(world, [hand, grip]);
-  // the line: links on short stiff joints, the last one carrying the bait
-  const links = [], joints = [];
-  for (let i = 0; i < N; i++) {
-    const b = Bodies.circle(400, 110 + (i + 1) * g.segLen, i === N - 1 ? 4 : 2, { collisionFilter: SOFT, frictionAir: .02, density: i === N - 1 ? .006 : .002 });
-    links.push(b); joints.push(Constraint.create({ bodyA: i ? links[i - 1] : hand, bodyB: b, length: g.segLen, stiffness: .95, damping: .05 }));
+  const WY = 210, FLOOR = 525, X0 = 190, X1 = 610, HY = 165, TX = 668, TY = 112, TW = 44, TH = 340, BH = .3;
+  const g = { dur: 50, now: 0, got: [], phase: 'aim', x: 400, depth: 0, cd: 0, baitT: 0, dip: 0, fish: [], target: null, msg: '', msgT: 0, splash: [], first: true, ownCursor: true, b: .3, v: 0, p: .3, tgt: .3, holdT: 0, meter: .3, out: 0, tick: 0, nib: 0, nibT: 0, biteT: 0, landT: 0, on: false, snag: null, caught: null };
+  const say = (s, d = 1.6) => { g.msg = s; g.msgT = d; };
+  const depthY = d => WY + 14 + d * (FLOOR - WY - 70);
+  const bandOf = d => d < .33 ? 'worm' : d < .66 ? 'eel' : 'lamprey';
+  const BAND = { worm: [.04, .3], eel: [.36, .63], lamprey: [.69, .9], hand: [.92, .99] };
+  function spawn(id, atWall) {
+    const F = FISHES[id], [a, b] = BAND[id], dir = Math.random() < .5 ? 1 : -1;
+    const f = { id, ...F, ph: rnd(0, TAU), x: atWall ? (dir > 0 ? X0 - 30 : X1 + 30) : rnd(X0 + 50, X1 - 50), y0: depthY(rnd(a, b)), dir, flee: 0, phaseY: rnd(0, TAU), ang: dir > 0 ? 0 : Math.PI };
+    f.y = f.y0; g.fish.push(f); return f;
   }
-  Composite.add(world, [...links, ...joints]);
-  const bait = links[N - 1];
-  function spawnFish() {
-    const r = Math.random(), id = r < .07 ? 'hand' : r < .5 ? 'eel' : r < .8 ? 'lamprey' : 'worm', F = FISHES[id];
-    const x = rnd(X0 + 40, X1 - 40), y = rnd(WY + 140, FLOOR - 40), segs = [], cons = [];
-    for (let i = 0; i < F.segs; i++) {
-      const s = Bodies.circle(x + i * F.r * 1.4, y, F.r * (1 - i / F.segs * .5), { collisionFilter: SOFT, frictionAir: .05, density: .002 });
-      segs.push(s); if (i) cons.push(Constraint.create({ bodyA: segs[i - 1], bodyB: s, length: F.r * 1.4, stiffness: .5, damping: .1 }));
-    }
-    Composite.add(world, [...segs, ...cons]);
-    g.fish.push({ id, ...F, segs, cons, head: segs[0], tx: x, ty: y, wanderT: 0, interest: rnd(.3, 1.5), nibbles: 0, nibT: 0, mode: 'swim', t: 0, stam: 1, face: 0, flee: 0 });
+  for (const id of ['worm', 'worm', 'eel', 'eel', 'lamprey', 'lamprey']) spawn(id);
+  if (Math.random() < .35) spawn('hand');
+  const splash = (x, big) => { g.splash.push({ x, t: 0, big }); noise(big ? .35 : .15, big ? .07 : .04, big ? 700 : 1100); };
+  // who comes to the bait: whatever lives at that depth. The very bottom has a chance of something else
+  function summon() {
+    const id = g.depth > .82 && Math.random() < .3 ? 'hand' : bandOf(g.depth);
+    const pool = g.fish.filter(f => f.id === id && !f.flee);
+    const f = pool.length ? pool.reduce((m, o) => Math.hypot(o.x - g.x, o.y - depthY(g.depth)) < Math.hypot(m.x - g.x, m.y - depthY(g.depth)) ? o : m) : spawn(id, true);
+    g.target = f; g.nib = 1 + Math.floor(Math.random() * 3); g.nibT = rnd(.35, .7); f.biting = true; f.delay = rnd(.2, .9);
   }
-  function removeFish(f) { Composite.remove(world, [...f.segs, ...f.cons]); if (f.hook) Composite.remove(world, f.hook); g.fish = g.fish.filter(o => o !== f); if (g.hooked === f) g.hooked = null; }
-  function letGo(f, why) { if (f.hook) { Composite.remove(world, f.hook); f.hook = null; } if (g.hooked === f) g.hooked = null; f.mode = 'swim'; f.flee = 3; f.tx = f.head.position.x < 400 ? X0 + 30 : X1 - 30; f.ty = FLOOR - 30; g.phase = 'wait'; g.tension = 0; if (why) say(why, 1.6); }
-  function mood(f, m) {
-    f.mode = m;
-    if (m === 'tell') { f.t = f.tell; tone(180, .25, 'sawtooth', .05, -60); noise(.25, .06, 900); }
-    if (m === 'run') { f.t = rnd(...f.run) * (.6 + .4 * f.stam); f.dir = f.head.position.x < 400 ? -1 : 1; if (Math.random() < .4) f.dir = -f.dir; noise(f.t, .05, 1400); once('run', 'let it run. let go'); }
-    if (m === 'tire') { f.t = rnd(...f.rest) * (1.3 - .3 * f.stam); tone(90, .6, 'sine', .04, -10); once('tire', 'it is tired. hold to reel'); }
-    if (m === 'stare') { f.t = 1.2; moan(); glimpse('o-stare', 'It stops pulling. It looks at you.', .05); once('stare', 'it is looking at you'); }
+  const release = (f, flee = 2.4) => { if (f) { f.biting = false; f.flee = flee; f.dir = f.x < g.x ? -1 : 1; } g.target = null; };
+  const reelUp = () => { g.phase = 'up'; g.baitT = 1; };
+  function fight(id) {
+    const f = id ? spawn(id) : g.target; g.target = f; f.biting = false;
+    g.phase = 'fight'; g.meter = .3; g.out = 0; g.ft = 0; g.grace = 1; g.tick = 0; g.v = 0; g.p = rnd(.3, .6); g.tgt = g.p; g.b = g.p; g.holdT = .8; g.snag = null; g.snagT = Math.random() < f.tooth ? rnd(1.4, 3) : null; g.teeth = 0;
+    tone(70, .4, 'sawtooth', .06, -20); shake = Math.max(shake, 4);
   }
-  const push = (b, ax, ay) => Body.applyForce(b, b.position, { x: b.mass * G * ax, y: b.mass * G * ay });
+  g.fight = fight;
+  function land() {
+    const f = g.target, share = g.out / Math.max(1, g.ft), q = share < .12 ? 2 : share < .35 ? 1 : 0, size = Math.round(rnd(...f.size) * (q === 2 ? 1.1 : 1));
+    let record = false;
+    if (L) { L.fishBest = L.fishBest || {}; record = size > (L.fishBest[f.id] || 0) && !!L.fishBest[f.id]; L.fishBest[f.id] = Math.max(size, L.fishBest[f.id] || 0); if (g.teeth) L.teeth += g.teeth; saveLife(); }
+    g.caught = { f, q, size, record, teeth: g.teeth }; g.phase = 'land'; g.landT = 0; g.first = false;
+    g.fish = g.fish.filter(o => o !== f); g.target = null;
+    splash(g.x, true); burst(g.x, WY, '#cfe6df', 22); shake = Math.max(shake, 5); sGood();
+    [392, 494, 587, q === 2 ? 784 : 0].forEach((n, i) => { if (n) setTimeout(() => tone(n, .22, 'triangle', .05), i * 110); });
+    if (f.id === 'hand') glimpse('o-stare', 'It stops pulling. It looks at you.', .3);
+  }
   g.down = () => {
-    if (g.phase === 'bite') { g.phase = 'fight'; const f = g.hooked; f.stam = 1; g.tension = 0; g.pen = 0; mood(f, 'tell'); shake = Math.max(shake, 5); Body.setVelocity(hand, { x: 0, y: -2 }); tone(70, .5, 'sawtooth', .06, -20); return; }
-    if (g.under) { g.mash++; tone(200 + g.mash * 40, .06, 'square', .04); return; }
+    if (g.phase === 'aim') { g.phase = 'charge'; g.cd = 0; tone(180, .08, 'square', .025); }
+    else if (g.phase === 'bite') { sThump(); fight(); }
+    else if (g.phase === 'wait') {
+      const f = g.target;
+      if (f && f.nibbling) { say('too soon. it backed off'); release(f, 1.2); g.again = .9; tone(160, .12, 'sine', .04, -40); }
+      else { release(f, 0); reelUp(); }
+    }
+    else if (g.phase === 'land' && g.landT > .45) finish();
   };
-  function land(f) {
-    const q = g.pen < .3 ? 2 : g.pen < .9 ? 1 : 0; g.got.push({ id: f.id, q }); sGood(); say(`landed: ${INGR[f.id].name}`, 1.8);
-    burst(f.head.position.x, f.head.position.y, '#5fd6c3', 18); removeFish(f); g.phase = 'wait'; g.tension = 0; g.spawnT = 1.2;
-  }
-  function step(dt) {
-    // physics in fixed steps
-    g.acc = (g.acc || 0) + dt * 1000;
-    let n = 0; while (g.acc >= 1000 / 60 && n < 4) { g.acc -= 1000 / 60; n++; water(); Engine.update(engine, 1000 / 60); }
-  }
-  // under the surface things float and drag; above it they fall
-  function water() {
-    for (const b of links) if (b.position.y > WY) { push(b, 0, -.75); Body.setVelocity(b, { x: b.velocity.x * .95, y: b.velocity.y * .95 }); }
-    for (const f of g.fish) for (const s of f.segs) if (s.position.y > WY) { push(s, 0, -1); Body.setVelocity(s, { x: s.velocity.x * .97, y: s.velocity.y * .97 }); }
-    // splashes where something crosses the surface
-    for (const b of [bait, ...g.fish.map(f => f.head)]) { const was = b._wy || b.position.y; if ((was - WY) * (b.position.y - WY) < 0 && Math.abs(b.velocity.y) > 1) g.splash.push({ x: b.position.x, t: 0, big: Math.abs(b.velocity.y) > 4 }); b._wy = b.position.y; }
+  function finish() {
+    const { f, q } = g.caught; g.got.push({ id: f.id, q }); g.caught = null; g.phase = 'aim'; g.baitT = 0;
+    spawn(f.id, true);
   }
   g.update = dt => {
-    g.now += dt; g.msgT -= dt;
+    g.now += dt; g.msgT -= dt; g.dip = Math.max(0, g.dip - dt * 26);
     for (const s of g.splash) s.t += dt; g.splash = g.splash.filter(s => s.t < .8);
-    const held = ptr.down, f = g.hooked;
-    // the line: hold to reel it in, except against a run: then holding only strains it. let go during a run and it pays out
-    const running = f && f.mode === 'run' && g.phase === 'fight';
-    if (held && !g.under && !running) g.segLen = Math.max(5, g.segLen - dt * 6.5);
-    else if (running && !held) g.segLen = Math.min(24, g.segLen + dt * 3.5);
-    // reeling against a run drags your hand toward the water; it never moves faster than you can answer, and lets go when you do
-    g.drag = g.drag || { x: 0, y: 0 };
-    if (running && held) { g.drag.x += (f.head.position.x - hand.position.x) * dt * .6; g.drag.y += 170 * f.str * dt; }
-    else { const k = Math.pow(.15, dt); g.drag.x *= k; g.drag.y *= k; }
-    // the hand follows the pointer (plus that drag) on a spring; the pointer alone can never put it in the water
-    grip.pointA = { x: clamp(ptr.x + g.drag.x, X0 + 20, X1 - 20), y: Math.min(ptr.y, WY - 30) + g.drag.y };
-    for (const j of joints) j.length = g.segLen;
-    g.spawnT -= dt; if (g.spawnT <= 0 && g.fish.length < 2) { spawnFish(); g.spawnT = rnd(2, 4); }
-    for (const fi of [...g.fish]) {
-      const h = fi.head.position;
-      if (fi !== f) {
-        // swimming: wander, and sooner or later come to the bait
-        fi.flee = Math.max(0, fi.flee - dt); fi.interest -= dt; fi.wanderT -= dt;
-        if (g.phase === 'wait' && !g.hooked && fi.interest <= 0 && !fi.flee && bait.position.y > WY + 10) { fi.tx = bait.position.x; fi.ty = bait.position.y; }
-        else if (fi.wanderT <= 0) { fi.wanderT = rnd(1.5, 3); fi.tx = rnd(X0 + 40, X1 - 40); fi.ty = rnd(WY + 60, FLOOR - 30); }
-        const dx = fi.tx - h.x, dy = fi.ty - h.y, d = Math.hypot(dx, dy) || 1;
-        push(fi.head, dx / d * .6, dy / d * .6);
-        if (g.phase === 'wait' && !g.hooked && fi.interest <= 0 && d < 18) {
-          fi.nibT -= dt;
-          if (fi.nibT <= 0) {
-            fi.nibT = rnd(.4, .8); fi.nibbles++; push(bait, rnd(-3, 3), 4); tone(800, .05, 'sine', .03);
-            if (fi.nibbles >= 2 + Math.floor(Math.random() * 2)) {
-              // it takes the bait: the line goes down hard
-              fi.hook = Constraint.create({ bodyA: fi.head, bodyB: bait, length: 0, stiffness: .7 }); Composite.add(world, fi.hook);
-              g.hooked = fi; g.phase = 'bite'; g.biteT = .9; push(bait, 0, 40); shake = Math.max(shake, 4); tone(120, .3, 'sine', .08, -40); noise(.3, .07, 600);
-            }
-          }
-        }
+    // the clock only runs while you are choosing and waiting
+    const f = g.target;
+    if (g.phase === 'bite' || g.phase === 'fight' || g.phase === 'land' || (f && f.nibbling)) timer += dt;
+    // what swims
+    for (const o of g.fish) {
+      if (o === f && g.phase === 'fight') continue;
+      o.flee = Math.max(0, o.flee - dt);
+      if (o.biting) {
+        o.delay -= dt; if (o.delay > 0) continue;
+        const by = depthY(g.depth) + 43, side = o.x < g.x ? -1 : 1, tx = g.x - 8 + side * (o.r + 4), dx = tx - o.x, dy = by - o.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(d / dt, 130);
+        o.x += dx / d * sp * dt; o.y += dy / d * sp * dt; o.ang = Math.atan2(by - o.y, g.x - o.x); o.nibbling = d < 4;
         continue;
       }
-      // on the line
-      if (g.phase === 'bite') { g.biteT -= dt; push(fi.head, rnd(-1, 1), 1); if (g.biteT <= 0) letGo(fi, 'it spat the hook'); continue; }
-      if (g.under) continue;
-      fi.t -= dt;
-      if (fi.t <= 0) { if (fi.mode === 'tell') mood(fi, 'run'); else if (fi.mode === 'run') { fi.stam = Math.max(.2, fi.stam - .2); mood(fi, 'tire'); } else if (fi.mode === 'tire') mood(fi, fi.id !== 'hand' && Math.random() < .2 ? 'stare' : 'tell'); else mood(fi, 'tell'); }
-      fi.face = fi.mode === 'stare' ? Math.min(1, fi.face + dt * 3) : Math.max(0, fi.face - dt * 3);
-      const out = h.y < WY;
-      // until it has run itself tired it fights to stay down; only a tired thing can be lifted out
-      const fresh = fi.stam > .65 || fi.mode !== 'tire'; // two runs at least before it will come up
-      if (fresh) push(fi.head, 0, (out ? 3 : 1.4) * fi.str);
-      if (fi.mode === 'tell') push(fi.head, rnd(-2.5, 2.5), rnd(-2.5, 2.5));
-      if (fi.mode === 'run' && !out) {
-        push(fi.head, fi.dir * 1.3 * fi.str, .9 * fi.str);
-        if (h.x < X0 + 50 || h.x > X1 - 50) fi.dir = -fi.dir;
-        // reeling against it: the strain builds, and it drags your hand toward the water
-        if (held) { g.tension = clamp(g.tension + dt * 1.3 * fi.str); g.pen += dt * .6; }
-        else g.tension = clamp(g.tension - dt * .5);
-      } else if (fi.mode === 'tire') { push(fi.head, Math.sin(g.now * 3) * .3, .15); g.tension = clamp(g.tension - dt * .7); }
-      else if (fi.mode === 'stare') { if (held && fi.t < .8) { g.tension = clamp(g.tension + .45); g.pen += .3; say('it was waiting', 1.2); shake = Math.max(shake, 6); sScream(); mood(fi, 'run'); } }
-      else g.tension = clamp(g.tension - dt * .4);
-      // thrashing once it is lifted out of the water; hold it up there and it is yours
-      if (out && !fresh) { push(fi.head, rnd(-1.5, 1.5), rnd(-1, .5)); fi.outT = (fi.outT || 0) + dt; if (fi.outT > .4) { land(fi); continue; } } else fi.outT = 0;
-      if (g.tension > .8) g.pen += dt * .25;
-      if (g.tension >= 1) { sBad(); hurt(.4); letGo(fi, 'the line snapped'); continue; }
+      o.nibbling = false;
+      const sp = o.sp * (o.flee ? 3.5 : 1);
+      o.x += o.dir * sp * dt; o.phaseY += dt; o.y += (o.y0 + Math.sin(o.phaseY) * 8 - o.y) * Math.min(1, dt * 2);
+      if (o.x < X0 + 24) o.dir = 1; if (o.x > X1 - 24) o.dir = -1;
+      o.ang = o.dir > 0 ? 0 : Math.PI;
     }
-    // the water has your hand
-    if (!g.under && hand.position.y > WY - 6) { g.underT += dt; if (g.underT > .5) { g.under = true; g.mash = 0; g.mashT = 2.4; g.pen += .3; hurt(.6); sScream(); glimpse('o-under', 'It has your hand.', .2); } } else if (!g.under) g.underT = Math.max(0, g.underT - dt);
-    if (g.under) {
-      g.mashT -= dt; push(hand, 0, 1.5);
-      if (g.mash >= 6) { g.under = false; g.underT = 0; g.drag = { x: 0, y: 0 }; Body.setPosition(hand, { x: hand.position.x, y: WY - 60 }); Body.setVelocity(hand, { x: 0, y: -8 }); tone(300, .2, 'sine', .06, 200); if (g.hooked) mood(g.hooked, 'tire'); }
-      else if (g.mashT <= 0) { g.under = false; g.underT = 0; g.drag = { x: 0, y: 0 }; Body.setPosition(hand, { x: hand.position.x, y: WY - 60 }); if (g.hooked) { sBad(); letGo(g.hooked, 'it took the line'); } }
+    if (g.phase === 'aim') { g.x = clamp(ptr.x, X0 + 40, X1 - 40); g.baitT = 0; }
+    else if (g.phase === 'charge') {
+      const was = bandOf(g.depth); g.cd += dt; const k = g.cd / 1.4 % 2; g.depth = .03 + .95 * (k < 1 ? k : 2 - k);
+      if (bandOf(g.depth) !== was) tone(240 + g.depth * -120, .05, 'square', .025);
+      if (!ptr.down) { g.phase = 'sink'; g.baitT = 0; splash(g.x); }
     }
-    step(dt);
+    else if (g.phase === 'sink') { g.baitT = Math.min(1, g.baitT + dt / .45); if (g.baitT >= 1) { g.phase = 'wait'; g.again = 0; summon(); } }
+    else if (g.phase === 'up') { g.baitT = Math.max(0, g.baitT - dt / .3); if (g.baitT <= 0) g.phase = 'aim'; }
+    else if (g.phase === 'wait') {
+      if (!g.target) { g.again -= dt; if (g.again <= 0) summon(); }
+      else if (g.target.nibbling) {
+        g.nibT -= dt;
+        if (g.nibT <= 0) {
+          if (g.nib-- > 0) { g.dip = 5; g.nibT = rnd(.4, .85); tone(800, .05, 'sine', .04); noise(.05, .025, 1600); }
+          else { g.phase = 'bite'; g.biteT = g.first ? 1.2 : .85; g.dip = 18; splash(g.x, true); shake = Math.max(shake, 7); tone(120, .3, 'sine', .09, -40); noise(.3, .07, 600); }
+        }
+      }
+    }
+    else if (g.phase === 'bite') { g.biteT -= dt; g.dip = 18; if (g.biteT <= 0) { say('it took the bait. cast again'); release(g.target, 3); reelUp(); sBad(); } }
+    else if (g.phase === 'fight') {
+      const F = g.target, ease = g.first ? .7 : 1; g.ft += dt;
+      // the thing on the line darts about its column
+      g.holdT -= dt;
+      if (g.holdT <= 0) { g.holdT = rnd(...F.hold); const j = rnd(F.jump * .4, F.jump) * ease; g.tgt = clamp(g.p + (Math.random() < .5 ? j : -j), .06, .94); if (g.tgt === .06 || g.tgt === .94) g.tgt = clamp(g.p + (g.p < .5 ? j : -j), .06, .94); }
+      g.p += (g.tgt - g.p) * (1 - Math.exp(-F.rate * dt));
+      // your grip: hold to lift, let go to sink, with some weight to it
+      g.v = clamp(g.v + (ptr.down ? 3.4 : -2.8) * dt, -1.2, 1.2); g.b += g.v * dt;
+      if (g.b < BH / 2) { g.b = BH / 2; g.v = Math.abs(g.v) * .25; } if (g.b > 1 - BH / 2) { g.b = 1 - BH / 2; g.v = -Math.abs(g.v) * .25; }
+      g.on = Math.abs(g.p - g.b) < BH / 2; g.grace -= dt;
+      if (g.on) { g.meter += F.gain * (g.first ? 1.2 : 1) * dt; g.tick -= dt; if (g.tick <= 0) { g.tick = .13; tone(280 + g.meter * 520, .05, 'sine', .03); } }
+      else if (g.grace <= 0) { g.meter -= F.drain * (g.first ? .6 : 1) * dt; g.out += dt; g.tick -= dt; if (g.tick <= 0) { g.tick = .3; if (g.meter < .25) tone(150, .08, 'square', .03); } }
+      if (g.on && Math.random() < dt * 6) drip(g.x + rnd(-20, 20), depthY(g.depth) * (1 - g.meter) + WY * g.meter, '#8fb0a8');
+      // sometimes a tooth comes loose in the column: hold your grip on it and it is yours, if you can spare the moment
+      if (g.snagT != null) { g.snagT -= dt; if (g.snagT <= 0) { g.snagT = null; g.snag = { y: g.p > .5 ? rnd(.12, .35) : rnd(.65, .88), life: 4.5, got: 0 }; tone(1100, .1, 'sine', .03); } }
+      if (g.snag) {
+        const s = g.snag; s.life -= dt; if (Math.abs(s.y - g.b) < BH / 2) { s.got += dt / 1; if (Math.random() < dt * 8) tone(900 + s.got * 500, .04, 'sine', .02); }
+        if (s.got >= 1) { g.teeth = F.id === 'hand' || F.id === 'lamprey' ? 2 : 1; g.snag = null; tone(1320, .25, 'triangle', .06); say(`+${g.teeth} tooth`.replace(/^\+2 tooth$/, '+2 teeth'), 1.4); } else if (s.life <= 0) g.snag = null;
+      }
+      if (g.meter >= 1) land();
+      else if (g.meter <= 0) { sBad(); say('it got away. cast again', 1.8); release(g.target, 3); reelUp(); }
+    }
+    else if (g.phase === 'land') { g.landT += dt; if (g.landT > 2.6) finish(); }
   };
   g.score = () => clamp(g.got.length / 2) * 100;
   g.yields = keptYields(g);
-  // what you hold the line by: a big rusted meat hook. The line is tied at the bottom of its bend, which is the point
+  // what goes in the water: a big rusted meat hook, tied on by the eye at (x, y), with the bait through its bend
   function drawHook(c, x, y, t) {
-    const sw = Math.sin(t * 1.3) * .06;
-    c.save(); c.translate(x, y); c.rotate(sw); c.lineCap = 'round'; c.lineJoin = 'round';
+    const sw = Math.sin(t * 1.3) * .1;
+    c.save(); c.translate(x, y); c.rotate(sw); c.scale(.65, .65); c.translate(-6, 62); c.lineCap = 'round'; c.lineJoin = 'round';
     const path = () => { c.beginPath(); c.moveTo(6, -54); c.lineTo(6, -12); c.quadraticCurveTo(6, 4, -6, 4); c.quadraticCurveTo(-20, 3, -20, -12); c.lineTo(-18, -24); };
     c.strokeStyle = '#140a04'; c.lineWidth = 9; path(); c.stroke();
     c.strokeStyle = '#6a3a1c'; c.lineWidth = 6; path(); c.stroke();
     c.strokeStyle = 'rgba(190,120,60,.55)'; c.lineWidth = 2; c.beginPath(); c.moveTo(4, -50); c.lineTo(4, -14); c.stroke();
-    // the barb, and the eye at the top of the shank
     c.fillStyle = '#6a3a1c'; c.beginPath(); c.moveTo(-18, -26); c.lineTo(-13, -18); c.lineTo(-19, -17); c.closePath(); c.fill();
     c.strokeStyle = '#140a04'; c.lineWidth = 7; c.beginPath(); c.arc(6, -62, 7, 0, TAU); c.stroke(); c.strokeStyle = '#7a4420'; c.lineWidth = 4; c.stroke();
-    // rust
     c.fillStyle = '#3a1a08'; for (const [rx, ry, rr] of [[6, -40, 2], [7, -24, 1.6], [-4, 3, 1.8], [-18, -6, 1.5], [5, -58, 1.4]]) { c.beginPath(); c.arc(rx, ry, rr, 0, TAU); c.fill(); }
     c.fillStyle = '#a0582a'; for (const [rx, ry] of [[5, -33], [-11, 4], [6, -17]]) c.fillRect(rx, ry, 2, 2);
     c.restore();
   }
+  const fightPos = t => ({ x: g.x + Math.sin(t * 3.1) * 26 * (1 - g.meter * .5), y: depthY(g.depth) * (1 - g.meter) + (WY + 18) * g.meter });
   g.draw = (c, t) => {
     // the shaft: wet stone either side, dark air above the water, black water below
     c.fillStyle = '#0d0b0a'; c.fillRect(-40, 40, W + 80, 500);
     const air = c.createLinearGradient(0, 40, 0, WY); air.addColorStop(0, '#1a1712'); air.addColorStop(1, '#0a0b0a'); c.fillStyle = air; c.fillRect(X0, 40, X1 - X0, WY - 40);
-    const wat = c.createLinearGradient(0, WY, 0, FLOOR); wat.addColorStop(0, '#0e2224'); wat.addColorStop(1, '#020506'); c.fillStyle = wat; c.fillRect(X0, WY, X1 - X0, FLOOR - WY);
+    const wat = c.createLinearGradient(0, WY, 0, FLOOR); wat.addColorStop(0, '#12302f'); wat.addColorStop(1, '#040c0d'); c.fillStyle = wat; c.fillRect(X0, WY, X1 - X0, FLOOR - WY);
     for (let y = 44; y < FLOOR + 30; y += 26) for (const [a, b] of [[-40, X0], [X1, W + 40]]) for (let x = a + ((y / 26) % 2) * 22; x < b; x += 44) { c.fillStyle = y > WY ? '#16201e' : '#2a2520'; c.fillRect(x + 1, y + 1, 42, 24); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(x + 1, y + 21, 42, 4); }
     c.fillStyle = '#2a2520'; c.fillRect(X0, FLOOR, X1 - X0, 40);
-    for (let i = 0; i < 4; i++) { c.fillStyle = `rgba(150,190,180,${(.025 + .015 * Math.sin(t + i)).toFixed(3)})`; c.beginPath(); const x = X0 + 60 + i * 100; c.moveTo(x, WY); c.lineTo(x + 40, WY); c.lineTo(x + 90, FLOOR); c.lineTo(x + 30, FLOOR); c.fill(); }
-    // what swims, dimmer the deeper it is
+    for (let i = 0; i < 4; i++) { c.fillStyle = `rgba(150,190,180,${(.03 + .015 * Math.sin(t + i)).toFixed(3)})`; c.beginPath(); const x = X0 + 60 + i * 100; c.moveTo(x, WY); c.lineTo(x + 40, WY); c.lineTo(x + 90, FLOOR); c.lineTo(x + 30, FLOOR); c.fill(); }
+    // what swims, and the one that is coming for you
     for (const f of g.fish) {
-      const dpt = clamp((f.head.position.y - WY) / (FLOOR - WY)), a = f.head.position.y < WY ? 1 : .9 - dpt * .6, roll = f.mode === 'tire' && f === g.hooked ? .3 + .2 * Math.sin(t * 3) : 0;
-      const [r0, g0, b0] = f.mode === 'tell' && f === g.hooked ? [200, 90, 80] : f.col;
-      for (let i = f.segs.length - 1; i >= 0; i--) { const s = f.segs[i], k = 1 - i / f.segs.length; c.fillStyle = `rgba(${(r0 + (255 - r0) * roll * k) | 0},${(g0 + (255 - g0) * roll * k) | 0},${(b0 + (255 - b0) * roll * k) | 0},${a.toFixed(2)})`; c.beginPath(); c.arc(s.position.x, s.position.y, s.circleRadius * 1.25, 0, TAU); c.fill(); if (f.id === 'worm' && i % 2) { c.strokeStyle = `rgba(80,30,30,${(a * .6).toFixed(2)})`; c.lineWidth = 1.5; c.stroke(); } }
-      const h = f.head.position, nk = f.segs[1].position, ang = Math.atan2(h.y - nk.y, h.x - nk.x);
-      c.save(); c.translate(h.x, h.y); c.rotate(ang);
-      if (f.id === 'lamprey') { c.fillStyle = `rgba(60,20,24,${a})`; c.beginPath(); c.arc(6, 0, 9, 0, TAU); c.fill(); c.strokeStyle = `rgba(230,220,180,${a})`; c.lineWidth = 1.5; for (let k = 0; k < 10; k++) { const q = k / 10 * TAU; c.beginPath(); c.moveTo(6 + Math.cos(q) * 8, Math.sin(q) * 8); c.lineTo(6 + Math.cos(q) * 4, Math.sin(q) * 4); c.stroke(); } }
-      else if (f.id === 'hand') { c.rotate(Math.PI / 2); c.globalAlpha = a; openHand(c, 1.2); c.globalAlpha = 1; }
-      const glint = f.mode === 'tell' && f === g.hooked ? '255,80,60' : '230,230,210';
-      c.fillStyle = `rgba(${glint},${(f === g.hooked ? 1 : .5) * a})`; c.fillRect(2, -5, 3, 3); c.fillRect(2, 3, 3, 3);
-      c.restore();
-      if (f.face > 0) { c.globalAlpha = f.face; c.fillStyle = '#b8aa9c'; c.beginPath(); c.ellipse(h.x, h.y, 24, 18, 0, 0, TAU); c.fill(); c.fillStyle = '#050404'; c.beginPath(); c.arc(h.x - 8, h.y - 4, 4, 0, TAU); c.arc(h.x + 8, h.y - 4, 4, 0, TAU); c.fill(); c.beginPath(); c.ellipse(h.x, h.y + 7, 6, 3, 0, 0, TAU); c.fill(); c.globalAlpha = 1; }
+      if (f === g.target && g.phase === 'fight') { const p = fightPos(t), hy = g.on ? -Math.PI / 2 : Math.sin(t * 5) * .8 - Math.PI / 2; drawFishBody(c, f, p.x, p.y, hy, t * 1.8, 1, 1.1, 1.4); continue; }
+      const dpt = clamp((f.y - WY) / (FLOOR - WY)), a = g.phase === 'charge' && bandOf(g.depth) === (f.id === 'hand' ? 'lamprey' : f.id) ? 1 : .85 - dpt * .3;
+      drawFishBody(c, f, f.x, f.y, f.ang, t, a);
     }
     // the surface, and what breaks it
     c.strokeStyle = 'rgba(170,210,205,.45)'; c.lineWidth = 2; c.beginPath(); for (let x = X0; x <= X1; x += 10) { const y = WY + Math.sin(x * .05 + t * 2) * 1.5; x === X0 ? c.moveTo(x, y) : c.lineTo(x, y); } c.stroke();
-    for (const s of g.splash) { const k = s.t / .8, r = (s.big ? 40 : 18) * k + 4; c.strokeStyle = `rgba(220,235,230,${(.8 * (1 - k)).toFixed(2)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(s.x, WY, r, r * .25, 0, 0, TAU); c.stroke(); if (s.big && k < .5) for (let i = 0; i < 5; i++) { c.fillStyle = 'rgba(220,235,230,.7)'; c.fillRect(s.x + (i - 2) * 8, WY - 30 * Math.sin(k * Math.PI * 2) * (1 - Math.abs(i - 2) / 3), 3, 3); } }
-    // the line, slack and grey or taut and reddening with strain
-    const tn = g.tension, shk = tn > .6 ? (tn - .6) * 8 * Math.sin(t * 70) : 0;
-    c.strokeStyle = tn > .8 ? '#c8402a' : `rgba(230,220,195,${.5 + tn * .5})`; c.lineWidth = 1.2 + tn * 2;
-    c.beginPath(); c.moveTo(hand.position.x, hand.position.y); links.forEach((b, i) => c.lineTo(b.position.x + (i % 2 ? shk : -shk), b.position.y)); c.stroke();
-    if (!g.hooked) { const b = bait.position; c.fillStyle = '#b07a70'; c.beginPath(); c.ellipse(b.x, b.y + 3, 5, 7, 0, 0, TAU); c.fill(); c.strokeStyle = '#8c877e'; c.lineWidth = 1.5; c.beginPath(); c.arc(b.x, b.y + 8, 4, 0, Math.PI); c.stroke(); }
-    if (!g.under) drawHook(c, hand.position.x, hand.position.y, t);
-    else for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(200,220,220,.5)'; c.beginPath(); c.arc(hand.position.x + rnd(-14, 14), WY + 10 + rnd(0, 30), rnd(2, 5), 0, TAU); c.fill(); }
-    // the strain on the line
-    if (g.hooked && g.phase === 'fight') { c.fillStyle = '#0b0908'; c.fillRect(712, 150, 22, 260); c.fillStyle = 'rgba(163,36,26,.35)'; c.fillRect(712, 150, 22, 260 * .2); c.fillStyle = tn > .8 ? '#c8402a' : '#e6dcc3'; c.fillRect(706, 410 - 260 * tn - 3, 34, 6); T('LINE', 723, 140, 18, '#8c826f'); }
-    if (g.under) T(`IT HAS THE HOOK · ${Math.max(0, 6 - g.mash)}`, 400, 160, 34, '#a3241a');
-    else if (g.phase === 'bite') T('NOW', bait.position.x, bait.position.y - 34, 40, '#fff6dc');
-    else if (g.hooked && g.hooked.mode === 'tell') T('!', g.hooked.head.position.x, g.hooked.head.position.y - 28, 40, '#c8402a');
-    else if (g.hooked && g.hooked.head.position.y < WY + 60 && g.hooked.mode === 'tire') T('lift it out', 400, 520, 24, '#c9a49a');
-    if (g.msgT > 0) T(g.msg, 400, 500, 26, '#d9cfb8');
-    else if (g.now < 4 && !g.hooked) T('let the bait down into the water. wait for the line to jerk', 400, 520, 22, '#8c826f');
+    for (const s of g.splash) { const k = s.t / .8, r = (s.big ? 44 : 20) * k + 4; c.strokeStyle = `rgba(220,235,230,${(.8 * (1 - k)).toFixed(2)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(s.x, WY, r, r * .25, 0, 0, TAU); c.stroke(); if (s.big && k < .5) for (let i = 0; i < 5; i++) { c.fillStyle = 'rgba(220,235,230,.7)'; c.fillRect(s.x + (i - 2) * 9, WY - 34 * Math.sin(k * Math.PI * 2) * (1 - Math.abs(i - 2) / 3), 3, 3); } }
+    // the line and the float
+    const hx = g.x, tieY = 58, cast = g.phase !== 'aim' && g.phase !== 'charge' && g.phase !== 'land';
+    c.lineCap = 'round';
+    if (g.phase === 'fight') {
+      const p = fightPos(t), taut = g.on; c.strokeStyle = taut ? '#f0e6c8' : 'rgba(230,220,195,.5)'; c.lineWidth = taut ? 2.4 : 1.4;
+      c.beginPath(); c.moveTo(hx, tieY); if (taut) c.lineTo(p.x, p.y); else c.quadraticCurveTo(hx + Math.sin(t * 9) * 24, (tieY + p.y) / 2, p.x, p.y); c.stroke();
+      drawHook(c, p.x, p.y, t);
+    } else {
+      const bait = cast ? lerp(HY, depthY(g.depth), g.baitT) : HY, floatY = WY + g.dip + Math.sin(t * 2) * 1.2 - 3, under = g.phase === 'bite';
+      c.strokeStyle = 'rgba(230,220,195,.6)'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(hx, tieY); c.lineTo(hx, bait); c.stroke();
+      drawHook(c, hx, bait, t);
+      if (g.phase !== 'bite') { c.fillStyle = '#b07a70'; c.beginPath(); c.ellipse(hx - 8, bait + 43, 8, 5, .3, 0, TAU); c.fill(); }
+      if (cast) { c.fillStyle = under ? '#7a2018' : '#d9cfb8'; c.beginPath(); c.ellipse(hx, floatY, 7, 9, 0, 0, TAU); c.fill(); c.fillStyle = '#a3241a'; c.beginPath(); c.ellipse(hx, floatY - 4, 6, 4, 0, 0, TAU); c.fill(); }
+    }
+    // the beam across the shaft, and the pulley the line runs over
+    c.fillStyle = '#2a1d14'; c.fillRect(X0 - 6, 42, X1 - X0 + 12, 9); c.fillStyle = '#5d5a55'; c.beginPath(); c.arc(hx, 54, 6, 0, TAU); c.fill(); c.fillStyle = '#1a140e'; c.beginPath(); c.arc(hx, 54, 2.5, 0, TAU); c.fill();
+    // where the line will stop while you hold
+    if (g.phase === 'charge') {
+      const y = depthY(g.depth); c.strokeStyle = 'rgba(230,220,195,.35)'; c.setLineDash([3, 5]); c.lineWidth = 1.5; c.beginPath(); c.moveTo(hx, HY); c.lineTo(hx, y); c.stroke(); c.setLineDash([]);
+      c.strokeStyle = '#f0e6c8'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(hx - 30, y); c.lineTo(hx + 30, y); c.stroke();
+    }
+  };
+  // above the lamp's dark: the depth guide, the fight's column, the catch
+  g.top = (c, t) => {
+    if (g.phase === 'aim' || g.phase === 'charge') {
+      const rows = [['worm', .165], ['eel', .495], ['lamprey', .8]], cur = g.phase === 'charge' ? bandOf(g.depth) : null;
+      for (const [id, d] of rows) {
+        const y = depthY(d), on = cur === id; c.fillStyle = on ? 'rgba(232,192,112,.22)' : 'rgba(0,0,0,.5)'; c.fillRect(8, y - 24, 174, 48); c.drawImage(ingIcon(id), 14, y - 18, 36, 36);
+        T(INGR[id].name, 56, y + 6, 22, on ? '#f0e6c8' : '#a89c88', 'left');
+      }
+      if (g.fish.some(f => f.id === 'hand')) T('something, at the bottom', 96, depthY(.98), 18, '#a89c88');
+    }
+    if (g.phase === 'bite') { const k = .5 + .5 * Math.sin(t * 22); T('! CLICK', g.x + 30, WY - 30, 46 + k * 8, '#fff6dc', 'left'); }
+    if (g.phase === 'fight') {
+      const F = g.target, yOf = p => TY + TH * (1 - p);
+      c.fillStyle = 'rgba(0,0,0,.8)'; c.fillRect(TX - 6, TY - 6, TW + 34, TH + 12);
+      c.fillStyle = '#0b1416'; c.fillRect(TX, TY, TW, TH);
+      // your grip
+      const by = yOf(g.b + BH / 2), bh = TH * BH, lit = g.on;
+      c.fillStyle = lit ? 'rgba(232,192,112,.85)' : 'rgba(150,130,90,.45)'; c.fillRect(TX + 1, by, TW - 2, bh);
+      c.fillStyle = lit ? '#fff0c8' : '#8c826f'; c.fillRect(TX + 1, by, TW - 2, 3); c.fillRect(TX + 1, by + bh - 3, TW - 2, 3);
+      // the tooth that came loose
+      if (g.snag) { const s = g.snag, y = yOf(s.y) + Math.sin(t * 4) * 2; c.fillStyle = s.life < 1.2 && Math.sin(t * 20) > 0 ? '#8c826f' : '#f4eedc'; c.beginPath(); c.moveTo(TX + TW / 2 - 7, y - 7); c.lineTo(TX + TW / 2 + 7, y - 7); c.lineTo(TX + TW / 2 + 4, y + 8); c.lineTo(TX + TW / 2, y + 2); c.lineTo(TX + TW / 2 - 4, y + 8); c.closePath(); c.fill(); if (s.got > 0) { c.strokeStyle = '#fff6dc'; c.lineWidth = 2; c.beginPath(); c.arc(TX + TW / 2, y, 14, -Math.PI / 2, -Math.PI / 2 + TAU * s.got); c.stroke(); } }
+      // it
+      c.fillStyle = 'rgba(0,0,0,.7)'; c.fillRect(TX + 1, yOf(g.p) - 11, TW - 2, 22);
+      drawFishBody(c, F, TX + TW / 2 + (F.len * F.r * .35), yOf(g.p), 0, t * 2, 1, .75, 1.2);
+      // how close you are
+      const mx = TX + TW + 8, low = g.meter < .25 && Math.sin(t * 14) > 0; c.fillStyle = '#0b0908'; c.fillRect(mx, TY, 16, TH);
+      c.fillStyle = low ? '#c8402a' : g.meter > .75 ? '#c8d68a' : '#9da35a'; c.fillRect(mx + 2, TY + TH * (1 - g.meter), 12, TH * g.meter);
+      c.strokeStyle = '#4a4238'; c.lineWidth = 2; c.strokeRect(TX, TY, TW, TH); c.strokeRect(mx, TY, 16, TH);
+      T(INGR[F.id].name, TX + 30, TY - 16, 22, '#d9cfb8');
+    }
+    if (g.phase === 'land' && g.caught) {
+      const { f, q, size, record, teeth } = g.caught, k = clamp(g.landT / .4), y = lerp(WY, 230, k) + Math.sin(g.landT * 3) * 4;
+      c.fillStyle = `rgba(4,3,2,${(.72 * k).toFixed(2)})`; c.fillRect(0, 40, W, H - 40);
+      c.save(); c.globalAlpha = k; c.fillStyle = 'rgba(232,192,112,.1)'; c.beginPath(); c.arc(400, y, 130, 0, TAU); c.fill(); c.restore();
+      drawFishBody(c, f, 400 + f.len * f.r * .9, y, 0, t * 1.5, 1, 1.5 + k * .9, 1.1);
+      if (k >= 1) {
+        T(INGR[f.id].name, 400, 345, 52, '#f4eedc');
+        T(`${size} inches${record ? ' · your longest yet' : ''}`, 400, 382, 28, record ? '#e8c070' : '#c9bda6');
+        T(q === 2 ? 'CLEAN CATCH' : q === 1 ? 'a good catch' : 'a hard catch', 400, 416, q === 2 ? 30 : 24, q === 2 ? '#c8d68a' : '#a89c88');
+        if (teeth) T(`and ${teeth} ${teeth > 1 ? 'teeth' : 'tooth'} off the line`, 400, 448, 26, '#f0e6c8');
+      }
+    }
+    // always one plain instruction
+    const hints = { aim: 'hold, then let go at the depth you want', charge: 'let go to stop the line here', sink: '', wait: g.target && g.target.nibbling ? 'wait for it to pull the float under' : 'something is coming. click to pull the line up', up: '', land: '' };
+    const hint = g.phase === 'fight' ? (g.on ? (g.first ? 'keep the light on it. it is coming up' : '') : 'hold to lift. let go to sink. keep the light on it') : hints[g.phase];
+    if (g.msgT > 0) T(g.msg, 400, 500, 30, '#f0e6c8');
+    else if (hint) T(hint, 400, 500, 26, '#d9cfb8');
   };
   return g;
 }
@@ -3215,7 +3308,7 @@ const STEPS = {
   web: { title: 'The Rafters', hint: 'Follow the silk slowly. Catch what falls.' },
   milk: { title: 'The Hutch', hint: 'Squeeze as it breathes out. Let go as it breathes in.' },
   shake: { title: 'The Drowned Orchard', hint: 'Hold and swing to shake. Let go to catch.' },
-  fish: { title: 'The Well', hint: 'Drop the line by a ripple. Hook it when it goes under. Then pull.' },
+  fish: { title: 'The Well', hint: 'Cast. Click when the float dips. Keep the light on it.' },
   stir: { title: 'The Black Milk', hint: 'Stir along the ring. Faster heats it. Steer around the hands.' },
   whisk: { title: 'The Grave-Yolk', hint: 'Stir along the ring. Faster heats it. Steer around the hands.' },
   fill: { title: 'The Molds', hint: 'Hold to pour. Leave it to seal. When the pipe shakes, stop.' },
@@ -3402,10 +3495,11 @@ function bump(k, v) {
 }
 const lifeStats = () => L.stats || (L.stats = { dishes: 0, stars: [0, 0, 0, 0], teeth: 0, gathered: 0, guests: {} });
 const gain = n => { L.teeth = Math.max(0, L.teeth + n); };
-const snap = () => ({ teeth: L.teeth, body: Math.round(L.body), mind: Math.round(L.mind) });
+const snap = () => ({ teeth: L.teeth, body: Math.round(L.body), mind: Math.round(L.mind), items: { ...L.items } });
 function diffs(b) {
   const out = [];
   for (const [k, n] of [['body', 'Body'], ['mind', 'Mind'], ['teeth', 'Teeth']]) { const d = Math.round(L[k]) - b[k]; if (d) out.push(`${n} ${d > 0 ? '+' : '−'}${Math.abs(d)}`); }
+  for (const k in ITEMS) { const d = L.items[k] - (b.items ? b.items[k] : L.items[k]); if (d) out.push(`${ITEMS[k].name} ${d > 0 ? '+' : '−'}${Math.abs(d)}`); }
   return out.join(' · ');
 }
 const tonightGuest = () => pick(TABLE_GUESTS());
@@ -3439,6 +3533,27 @@ const EVENTS = [
   { id: 'woman', cu: 'ashe', text:'The old woman is standing in your room. She has never climbed the stairs before.', choices: [
     { label: 'Let her speak', fx: () => { bump('mind', -5); const k = pick(['salt', 'laudanum', 'bread']); L.items[k]++; return `She does not. She presses ${ITEMS[k].name.toLowerCase()} into your hand.`; } },
     { label: 'Ask her to leave', fx: () => { bump('mind', -8); return 'She leaves. The door was bolted. It still is.'; } }] },
+  { id: 'prints', text: 'Wet footprints run from your bed to the top of the stairs. They are your size.', choices: [
+    { label: 'Follow them', fx: () => { bump('mind', -5); gain(3); return 'They stop at the top step. Something was left there for you.'; } },
+    { label: 'Mop them up', fx: () => { bump('body', -4); bump('mind', 4); return 'The water is warm. It does not wring out.'; } }] },
+  { id: 'hum', text: 'Someone is humming under the floorboards. You know the tune. You do not know how.', choices: [
+    { label: 'Hum along', fx: () => { bump('mind', 7); bump('body', -7); return 'It finds the harmony. You lose some time, and you do not miss it.'; } },
+    { label: 'Lift the board', fx: () => { if (Math.random() < .5) { gain(6); return 'Nobody there. Teeth, in a neat row, still humming.'; } bump('mind', -10); return 'Nobody there. The humming is closer now.'; } }] },
+  { id: 'coat', text: 'A coat is hanging on your door. It is not yours. The pockets are full.', choices: [
+    { label: 'Go through them', fx: () => { const r = Math.random(); if (r < .4) { L.items.bread++; return 'Bread, wrapped in a page of your handwriting.'; } if (r < .75) { gain(4); return 'Teeth, and a key that fits nothing.'; } bump('body', -10); hurt(.4); return 'Something in the lining closes on your fingers.'; } },
+    { label: 'Burn it', fx: () => { bump('mind', 3); return 'It takes a long time. It smells like someone you know.'; } }] },
+  { id: 'hair', text: 'You wake with hair in your mouth. It is long. It is not yours.', choices: [
+    { label: 'Pull it out', fx: () => { bump('body', -6); bump('mind', 2); return 'It keeps coming. Then it stops, and something lets go.'; } },
+    { label: 'Swallow it', fx: () => { bump('body', 9); bump('mind', -6); return 'You are less hungry than you were.'; } }] },
+  { id: 'handprint', text: 'A small handprint on the inside of the window, above the boards.', choices: [
+    { label: 'Wipe it away', fx: () => { bump('mind', -3); return 'Another comes up beside it. Higher.'; } },
+    { label: 'Press your hand to it', fx: () => { bump('mind', -8); L.sharp = true; return 'Your hands feel steady. They are not quite your hands. Tonight every step below gives you a little more time.'; } }] },
+  { id: 'jarturn', cond: () => (L.pantry || []).length > 0, text: 'One of the jars on your shelf has turned to face you.', choices: [
+    { label: 'Open it', fx: () => { const p = pick(L.pantry), name = INGR[p.id].name; if (Math.random() < .55) { p.q = Math.min(2, (p.q ?? 1) + 1); p.age = 0; return `${name}. It smells fresher than the day you found it.`; } L.pantry.splice(L.pantry.indexOf(p), 1); bump('mind', -3); return `${name}. The jar is empty. There is a tide line, and it is still falling.`; } },
+    { label: 'Turn it back', fx: () => { bump('mind', -2); return 'By evening it has turned again. It is patient.'; } }] },
+  { id: 'spelled', cond: () => L.teeth >= 15, text: 'Your teeth are laid out on the floor. Someone has used them to spell something.', choices: [
+    { label: 'Read it', fx: () => { bump('mind', -6); const g = tonightGuest(); L.hint = g.id; gain(2); return `It is a name. ${g.name}. There are two more teeth than you had.`; } },
+    { label: 'Sweep them up', fx: () => { gain(-2); bump('mind', 8); return 'Two go down between the boards. You do not go after them. You feel better for it.'; } }] },
   { id: 'effigy', cond: () => L.up.shrine >= 1, text: 'The effigy has turned to face your bed.', choices: [
     { label: 'Turn it back', fx: () => { bump('mind', -3); return 'It is heavier than it was.'; } },
     { label: 'Leave it', fx: () => { gain(3); bump('mind', -7); return 'In the morning there are teeth at its feet.'; } }] },
@@ -3537,6 +3652,10 @@ function shelfHTML(small) {
   return `<div class="shelf${small ? ' small' : ''}">${slots.join('')}</div>`;
 }
 const pantryHTML = () => `<div><div class="sect">The shelf ${(L.pantry || []).length}/${PANTRY_MAX}</div>${shelfHTML()}</div>`;
+// the shelf as a plain list you can read at a glance: what it is, how good, and how long it has left
+const NIGHTS_LEFT = p => KEEPS - (p.age || 0) + 1;
+const stockRow = p => { const n = NIGHTS_LEFT(p), q = jarQ(p); return `<span class="stockrow q${q}${n <= 1 ? ' soft' : ''}" data-ing="${p.id}"><img src="${ingImg(p.id)}" alt=""><b>${INGR[p.id].name}</b><i class="pip">${'●'.repeat(q + 1)}${'○'.repeat(2 - q)}</i><em>${n <= 1 ? 'spoils at dawn' : `${n} nights`}</em></span>`; };
+const stockHTML = (cls = '') => { const p = L.pantry || []; return `<div class="stock ${cls}"><div class="sect">The shelf ${p.length}/${PANTRY_MAX}</div>${p.length ? p.map(stockRow).join('') : '<span class="stockrow none"><em>Nothing. Go out at dusk.</em></span>'}</div>`; };
 // what each jar does for the night: more time below for a good one, a tooth for a perfect one;
 // without one you use something of your own, and that costs you
 const ING_FX = [{ mul: 0, teeth: 0, say: 'nothing extra' }, { mul: .08, teeth: 0, say: 'more time below' }, { mul: .15, teeth: 1, say: 'much more time below, and a tooth' }];
@@ -3657,6 +3776,7 @@ function quarters(notes) {
    works; they never say who wrote them or what happened. Later pages are only dated, and the hand gets worse. */
 const NOTES = {
   start: { at: 'Under the pillow', text: 'Whoever finds this: you are the cook now. When the light goes, go down. Cook what she shows you. Come back up. Sleep. Again.' },
+  feast: { at: 'Sewn into the mattress', text: 'There is one dish she never shows you. The Feast. Serve the pudding, the soufflé and the sausage, and it comes onto the menu. Five steps, for all of them at once. Do every step well and the house lets go. I got as far as the fourth.' },
   shop: { at: 'Tucked in his pack', text: 'He takes teeth. Buy the bed first, then the lamp. Never spend what the sill needs.' },
   night: { at: 'Pinned under the plate', text: 'The kitchen eats a little of you every night. Body comes back with sleep. Mind hardly does. Watch the mind.' },
   sill: { at: 'Wedged in the sill', text: 'Every dawn the sill takes teeth. One at first, one more every four days. If it is short, it takes from your mind instead.' },
@@ -3668,11 +3788,12 @@ const NOTES = {
   d4: { at: 'Loose, between the floorboards', text: 'Day 11. Ashe hummed while I worked. I did not know she could.' },
   d7: { at: 'Inside the bread', text: 'Day 19. The stairs have more steps going down than coming up. I have counted.' },
   d10: { at: 'Folded very small', text: 'Day 26. I have stopped writing down what the guests look like. It doesn’t help.', torn: true },
-  d13: { at: 'In your own coat pocket', text: 'Day 31. If you are reading this then', torn: true }
+  d13: { at: 'In your own coat pocket', text: 'Day 31. If you are reading this then', torn: true },
+  back: { at: 'On the pillow, in your hand', text: 'You got out. You saw it. Why did you come back.' }
 };
 const NOTE_ORDER = Object.keys(NOTES);
 const pageHTML = (id, found) => {
-  const i = NOTE_ORDER.indexOf(id), n = NOTES[id], late = Math.max(0, i - 8);
+  const i = NOTE_ORDER.indexOf(id), n = NOTES[id], late = id === 'back' ? 0 : Math.max(0, i - 9);
   return `<div class="page${found ? ' found' : ''}${n.torn ? ' torn' : ''}" style="--tilt:${((i * 37) % 7 - 3) * .5};--smear:${late * .25};--shake:${late}"><span class="at">${n.at}</span><p>${n.text}</p></div>`;
 };
 // the first time something comes up, its page turns up with it (once a life)
@@ -3698,7 +3819,7 @@ function notebook(i = (L.notes || []).length - 1) {
 // on the day panel at most one page turns up at a time: the first that applies
 function dayPage() {
   if (L.day === 1) return notePage('start');
-  for (const [id, ok] of [['mind', L.mind < 50], ['body', L.body < 35], ['d4', L.day >= 4], ['d7', L.day >= 7], ['d10', L.day >= 10], ['d13', L.day >= 13]])
+  for (const [id, ok] of [['back', !!L.escaped], ['feast', L.day >= 2], ['mind', L.mind < 50], ['body', L.body < 35], ['d4', L.day >= 4], ['d7', L.day >= 7], ['d10', L.day >= 10], ['d13', L.day >= 13]])
     if (ok && !(L.notes || []).includes(id)) return notePage(id);
   return '';
 }
@@ -3712,8 +3833,8 @@ function dayPanel(msg) {
     <div><div class="sect">${h ? 'While there is light' : 'The light is going'}</div>
     <div class="list">
       ${A('lamp', 'Sit by the light', 'mind')}
-      ${A('bread', 'Eat bread', 'body', L.items.bread > 0)}
-      ${A('laud', 'Take laudanum', 'mind', L.items.laudanum > 0)}
+      ${A('bread', 'Eat bread', `body · have ${L.items.bread}`, L.items.bread > 0)}
+      ${A('laud', 'Take laudanum', `mind · have ${L.items.laudanum}`, L.items.laudanum > 0)}
       ${A('sharp', 'Sharpen the knives', L.sharp ? 'already sharp' : 'more time tonight', !L.sharp)}
       ${A('look', 'Look around', '?')}
     </div></div>
@@ -3723,6 +3844,7 @@ function dayPanel(msg) {
     const nb = n.querySelector('#notes'); if (nb) nb.onclick = () => notebook();
     // his button, on the floor by him
     const pb = el(`<button class="peddle" type="button" aria-label="Trade with the peddler">Trade ${TOOTH}${L.teeth}</button>`); pb.onclick = () => shop(); ov.appendChild(pb);
+    ov.appendChild(el(stockHTML('onwall')));
     n.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
       if (L.hours <= 0) return; L.hours--;
       if (b.dataset.a === 'look') { L.event = pickEvent(); saveLife(); return eventCard(EVENTS.find(e => e.id === L.event)); }
@@ -3842,6 +3964,109 @@ function ending() {
     fade(false, 1600);
   });
 }
+const endStatsHTML = R => `<div class="endstats">
+      <div><b>${R.day}</b><span>days</span></div>
+      <div><b>${R.dishes}</b><span>dishes served</span></div>
+      <div><b>${R.bestNight === null ? '—' : candles(R.bestNight)}</b><span>best night</span></div>
+      <div><b>${R.teeth}</b><span>teeth earned</span></div>
+      <div><b>${R.gathered}</b><span>things brought in</span></div>
+      <div><b>${R.guests} / ${GUESTS.length}</b><span>guests met</span></div>
+    </div>`;
+/* ---------- the way out ----------
+   Do every step of the Feast well and the house lets go: up the stairs, your room splits open, you run for the light.
+   The save stays. It sits at the title as it was, so you can go back down if you want to. */
+const FEAST_HOLD = 65; // TOLERATED or better, on every step
+function escapeHouse() {
+  L.escaped = (L.escaped || 0) + 1; L.odd = pickOdd(); L.phase = 'up'; saveLife();
+  cutscene('escape', escapeCard);
+}
+function escapeCard() {
+  mode = 'idle'; const R = deathReport();
+  const lines = [
+    `<span class="eyebrow">Day ${R.day}</span>`,
+    `<h2>Out</h2>`,
+    `<p class="omen">It was only morning. You had forgotten what that looks like.</p>`,
+    `<p class="why">You have escaped.</p>`,
+    `<p class="hint">You fed all of them, and the house let you go. Nothing has followed you. Not yet.</p>`,
+    endStatsHTML(R),
+    `<div class="btns"><button id="go" type="button">Main menu</button></div>`
+  ];
+  show(`<div class="card solo end"><div class="txt" style="justify-items:center">${lines.map((l, i) => l.replace(/^<(\w+)/, `<$1 style="--i:${i}"`)).join('')}</div></div>`, n => {
+    n.querySelector('#go').onclick = () => fade(true, 1400, () => { titleScreen(); fade(false, 1600); });
+  }, 'dawn');
+}
+// the room splits along a jagged line, and what is behind it is too bright to look at
+function drawEscape(c, t, k, dt) {
+  if (t < 2.2) { const camZ = drawStairs(c, TT, clamp(t / 2.2), true, 0), s = Math.floor(camZ); if (s !== k.step) { k.step = s; footstep(); } return; }
+  if (t < 3) { if (!k.creak) { k.creak = true; tone(170, .9, 'sawtooth', .03, -70); noise(.6, .03, 900); } drawStairs(c, TT, 1, true, clamp((t - 2.2) / .8)); return; }
+  if (t < 6.6) {
+    const q = clamp((t - 3.4) / 3), w = q * q * 190;
+    if (!k.rumble && t > 3.4) { k.rumble = true; noise(3.2, .06, 90); tone(44, 3.2, 'sawtooth', .05, 30); }
+    if (t > 3.4) shake = Math.max(shake, 2 + q * 7);
+    if (Math.random() < q * .15) noise(.07, .05, 1800);
+    const z = 1.3 + q * .5;
+    c.save(); c.translate(400, 280); c.scale(z, z); c.translate(-400, -280);
+    drawQuarters(c, TT);
+    c.fillStyle = `rgba(4,6,12,${(.62 * (1 - q * .7)).toFixed(2)})`; c.fillRect(-40, -40, W + 80, H + 80);
+    // the crack: down the wall and into the floor, widening from the middle, each side torn differently
+    const SEG = 28, pts = k.crack || (k.crack = Array.from({ length: SEG + 1 }, (_, i) => [400 + Math.sin(i * 1.7) * 22 + rnd(-10, 10), -40 + i * 24, rnd(.7, 1.25), rnd(.7, 1.25)]));
+    const wid = i => w * Math.sin(Math.PI * clamp(i / SEG)) + q * 3 + .6;
+    const split = (grow, col) => { c.fillStyle = col; c.beginPath(); pts.forEach((p, i) => { const X = p[0] - wid(i) * p[2] * grow; i ? c.lineTo(X, p[1]) : c.moveTo(X, p[1]); }); for (let i = SEG; i >= 0; i--) c.lineTo(pts[i][0] + wid(i) * pts[i][3] * grow, pts[i][1]); c.closePath(); c.fill(); };
+    split(1.25, '#0a0502'); split(1.08, '#d8842c'); split(.94, '#ffd98c'); split(.72, '#fffbea');
+    // boards and splinters thrown off the edges
+    k.bits = k.bits || [];
+    if (t > 3.6 && Math.random() < .12 + q * .4) { const i = Math.floor(rnd(2, SEG - 2)), s = Math.random() < .5 ? -1 : 1; k.bits.push({ x: pts[i][0] + s * wid(i), y: pts[i][1], vx: s * rnd(40, 200), vy: rnd(-220, -40), r: rnd(-3, 3), a: rnd(0, TAU), w: rnd(5, 22), h: rnd(3, 8) }); }
+    for (const b of k.bits) { b.vy += 700 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.r * dt; c.save(); c.translate(b.x, b.y); c.rotate(b.a); c.fillStyle = '#2a1c12'; c.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); c.restore(); }
+    k.bits = k.bits.filter(b => b.y < 620);
+    c.restore();
+    // what comes through it
+    c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + TT * .08 + Math.sin(i * 3.3) * .3, sp = .07 + (i % 3) * .03, L2 = 240 + q * 620; c.fillStyle = `rgba(255,214,140,${(q * .16).toFixed(3)})`; c.beginPath(); c.moveTo(400, 280); c.lineTo(400 + Math.cos(a - sp) * L2, 280 + Math.sin(a - sp) * L2); c.lineTo(400 + Math.cos(a + sp) * L2, 280 + Math.sin(a + sp) * L2); c.closePath(); c.fill(); }
+    const g2 = c.createRadialGradient(400, 280, 10, 400, 280, 120 + q * 420); g2.addColorStop(0, `rgba(255,226,170,${(.1 + q * .55).toFixed(2)})`); g2.addColorStop(1, 'rgba(255,190,110,0)'); c.fillStyle = g2; c.fillRect(-40, -40, W + 80, H + 80);
+    c.globalCompositeOperation = 'source-over';
+    if (t > 5.9) { c.fillStyle = `rgba(255,248,228,${clamp((t - 5.9) / .7).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80); }
+    return;
+  }
+  if (t < 9.8) {
+    // through it, running
+    const p = clamp((t - 6.6) / 3.2), camZ = p * p * 3 + p * 8, f = 330, END = 13, bob = Math.abs(Math.sin(camZ * 3.2)) * 18, vx = 400 + Math.sin(camZ * 1.6) * 14, hz = 250 + bob;
+    const s = Math.floor(camZ * 1.6); if (s !== k.step) { k.step = s; footstep(); if (s % 2) noise(.1, .03, 700); }
+    const P = (x, y, z) => { const d = Math.max(.1, z - camZ); return [vx + x * f / d, hz - (y - 1.5) * f / d]; };
+    const col = (base, z) => { const m = clamp(1 - (END - z) / 9); return rgb(base.map((v, i) => v * .55 + ([255, 226, 170][i] - v * .55) * m * m * m)); };
+    const poly = (pts, cl) => { c.fillStyle = cl; c.beginPath(); pts.forEach((q, i) => { const [sx, sy] = P(...q); i ? c.lineTo(sx, sy) : c.moveTo(sx, sy); }); c.closePath(); c.fill(); };
+    c.fillStyle = '#0c0705'; c.fillRect(-40, -40, W + 80, H + 80);
+    poly([[-1.6, -.1, END], [1.6, -.1, END], [1.6, 3.1, END], [-1.6, 3.1, END]], '#fff8e6');
+    for (let z = END; z > camZ; z -= .5) {
+      const z0 = Math.max(z - .5, camZ + .1), n = Math.round(z * 2), even = n % 2;
+      poly([[-1.5, 0, z0], [1.5, 0, z0], [1.5, 0, z], [-1.5, 0, z]], col(even ? [46, 34, 26] : [36, 26, 20], z));
+      poly([[-1.5, 3, z0], [1.5, 3, z0], [1.5, 3, z], [-1.5, 3, z]], col([18, 14, 10], z));
+      for (const sd of [-1, 1]) poly([[sd * 1.5, 0, z0], [sd * 1.5, 0, z], [sd * 1.5, 3, z], [sd * 1.5, 3, z0]], col(even ? [72, 52, 36] : [56, 40, 28], z));
+      // every board you pass through was torn: a ragged edge reaching in from all sides
+      if (n % 3 === 0) {
+        const h = i => ((n * 7 + i * 13) % 11) / 11, cl = col([26, 18, 12], z), pts = [];
+        for (let i = 0; i <= 8; i++) pts.push([-1.5 + i * .375, 3 - (.2 + h(i) * .7) * (i % 2 ? 1 : .35), z]);
+        for (let i = 1; i <= 6; i++) pts.push([1.5 - (.15 + h(i + 9) * .6) * (i % 2 ? 1 : .3), 3 - i * .43, z]);
+        for (let i = 8; i >= 0; i--) pts.push([-1.5 + i * .375, (.1 + h(i + 18) * .4) * (i % 2 ? 1 : .3), z]);
+        for (let i = 6; i >= 1; i--) pts.push([-1.5 + (.15 + h(i + 27) * .6) * (i % 2 ? 1 : .3), 3 - i * .43, z]);
+        c.fillStyle = cl; c.beginPath();
+        const [ax, ay] = P(-1.5, 0, z), [bx, by] = P(1.5, 3, z), l = Math.min(ax, bx), r = Math.max(ax, bx), tp = Math.min(ay, by), bt = Math.max(ay, by);
+        c.moveTo(l - 2, tp - 2); c.lineTo(r + 2, tp - 2); c.lineTo(r + 2, bt + 2); c.lineTo(l - 2, bt + 2); c.closePath();
+        pts.forEach((q, i) => { const [sx, sy] = P(...q); i ? c.lineTo(sx, sy) : c.moveTo(sx, sy); }); c.closePath(); c.fill('evenodd');
+      }
+    }
+    // rays from the end, and dust going past you
+    const [ox, oy] = P(0, 1.5, END);
+    c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + t * .25, sp = .06 + (i % 2) * .05; c.fillStyle = `rgba(255,214,140,${(.05 + p * .1).toFixed(3)})`; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + Math.cos(a - sp) * 800, oy + Math.sin(a - sp) * 800); c.lineTo(ox + Math.cos(a + sp) * 800, oy + Math.sin(a + sp) * 800); c.closePath(); c.fill(); }
+    for (let i = 0; i < 30; i++) { const a = i * 2.4, m = (t * (.7 + (i % 5) * .15) + i * .37) % 1, r = m * m * 560, sz = 1 + m * 3; c.fillStyle = `rgba(255,236,190,${(m * .8).toFixed(2)})`; c.fillRect(ox + Math.cos(a) * r, oy + Math.sin(a) * r, sz, sz); }
+    c.globalCompositeOperation = 'source-over';
+    if (t < 7) { c.fillStyle = `rgba(255,248,228,${(1 - (t - 6.6) / .4).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80); }
+    const hz2 = clamp((p - .5) / .5); c.fillStyle = `rgba(255,248,228,${(hz2 * hz2).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80);
+    return;
+  }
+  if (!k.sung) { k.sung = true; tone(262, 3, 'sine', .05); tone(392, 3, 'sine', .035); tone(523, 2.6, 'sine', .025); }
+  c.fillStyle = '#fff8e6'; c.fillRect(-40, -40, W + 80, H + 80);
+}
 function endCard(R) {
   mode = 'idle';
   const lines = [
@@ -3850,14 +4075,7 @@ function endCard(R) {
     `<p class="omen">You go down one more time, and keep going.</p>`,
     `<p class="why">${R.why[0]}</p>`,
     `<p class="hint">${R.why[1]}</p>`,
-    `<div class="endstats">
-      <div><b>${R.day}</b><span>days</span></div>
-      <div><b>${R.dishes}</b><span>dishes served</span></div>
-      <div><b>${R.bestNight === null ? '—' : candles(R.bestNight)}</b><span>best night</span></div>
-      <div><b>${R.teeth}</b><span>teeth earned</span></div>
-      <div><b>${R.gathered}</b><span>things brought in</span></div>
-      <div><b>${R.guests} / ${GUESTS.length}</b><span>guests met</span></div>
-    </div>`,
+    endStatsHTML(R),
     `<div class="btns"><button id="go" type="button">Main menu</button></div>`
   ];
   show(`<div class="card solo end"><div class="txt" style="justify-items:center">${lines.map((l, i) => l.replace(/^<(\w+)/, `<$1 style="--i:${i}"`)).join('')}</div></div>`, n => {
@@ -3911,6 +4129,41 @@ function drawPeddler(c, t) {
   c.strokeStyle = 'rgba(200,140,70,.4)'; c.lineWidth = 2; c.beginPath(); c.ellipse(x + lean, top - 12, 38, 7, -.05, -.3, Math.PI * .6); c.stroke();
   const a = Math.atan2(ptr.y - top, ptr.x - x), blink = Math.sin(t * .37) > .985;
   if (!blink) { c.fillStyle = peddling ? '#e8c860' : '#c9b98a'; c.fillRect(x - 7 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); c.fillRect(x + 4 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); }
+}
+// the jar on the wall: every tooth you own, in a pile. What you earn drops in, what you spend lifts out, and the
+// count sits under it. It only animates changes you can see; coming back to the room it is simply as you left it.
+const JAR_MAX = 36, JX = 274, JY = 108;
+const jarSlot = i => { const row = Math.floor(i / 6), col = i % 6; return [JX - 31 + col * 10.5 + (row % 2) * 3, JY - 7 - row * 10 + ((i * 7) % 3) - 1]; };
+const jar = { shown: 0, loose: [], out: [], t: 0, pop: 0, shake: 0, seen: -1 };
+function drawJarTooth(c, x, y, i = 0, a = 1) {
+  c.globalAlpha = a; c.fillStyle = ['#e6dcc3', '#d6c9a8', '#c9b98e'][i % 3];
+  c.fillRect(x - 4, y - 5, 8, 6); c.fillRect(x - 4, y + 1, 3, 4); c.fillRect(x + 1, y + 1, 3, 4);
+  c.globalAlpha = 1;
+}
+function drawToothJar(c, dt) {
+  if (TT - jar.seen > .3) { jar.shown = L.teeth; jar.loose = []; jar.out = []; }
+  jar.seen = TT; jar.t -= dt; jar.pop = Math.max(0, jar.pop - dt * 5); jar.shake = Math.max(0, jar.shake - dt * 10);
+  const sent = jar.shown + jar.loose.length, diff = L.teeth - sent;
+  if (diff && jar.t <= 0) {
+    jar.t = Math.min(.09, .9 / Math.abs(diff));
+    if (diff > 0) { if (sent < JAR_MAX) jar.loose.push({ i: sent, y: JY - 84, vy: 0 }); else { jar.shown++; jar.pop = 1; } }
+    else { jar.loose = []; jar.shown = Math.min(jar.shown, sent) - 1; jar.pop = 1; tone(520, .06, 'square', .02, -160); if (jar.shown < JAR_MAX) { const [x, y] = jarSlot(jar.shown); jar.out.push({ x, y, i: jar.shown, a: 1 }); } }
+  }
+  const sx = Math.sin(TT * 60) * jar.shake * 1.5;
+  // the shelf, on two nails
+  c.fillStyle = '#2a1d14'; c.fillRect(JX - 48, JY + 6, 96, 7); c.fillStyle = '#17100a'; c.fillRect(JX - 42, JY + 13, 5, 10); c.fillRect(JX + 37, JY + 13, 5, 10);
+  // the jar's back, then what is in it
+  c.fillStyle = 'rgba(70,84,74,.3)'; c.fillRect(JX - 38 + sx, JY - 68, 76, 74);
+  for (let i = 0; i < Math.min(jar.shown, JAR_MAX); i++) { const [x, y] = jarSlot(i); drawJarTooth(c, x + sx, y, i); }
+  for (const l of jar.loose) { l.vy += 1100 * dt; l.y += l.vy * dt; drawJarTooth(c, jarSlot(l.i)[0], Math.min(l.y, jarSlot(l.i)[1]), l.i); }
+  while (jar.loose.length && jar.loose[0].y >= jarSlot(jar.loose[0].i)[1]) { jar.loose.shift(); jar.shown++; jar.pop = 1; jar.shake = 1; tone(1250 + Math.random() * 200, .04, 'triangle', .035); }
+  for (const o of jar.out) { o.y -= 90 * dt; o.a -= dt * 1.6; if (o.a > 0) drawJarTooth(c, o.x, o.y, o.i, o.a); }
+  jar.out = jar.out.filter(o => o.a > 0);
+  // the glass, the neck and the shine
+  c.strokeStyle = 'rgba(190,205,190,.6)'; c.lineWidth = 2.5; c.strokeRect(JX - 38 + sx, JY - 68, 76, 74);
+  c.fillStyle = '#3a2a1e'; c.fillRect(JX - 30 + sx, JY - 80, 60, 12);
+  c.fillStyle = 'rgba(225,235,225,.22)'; c.fillRect(JX - 33 + sx, JY - 63, 6, 58);
+  T(String(jar.shown + jar.loose.length), JX, JY + 50, 38 + jar.pop * 14, jar.pop > .3 ? '#fff6dc' : '#e6dcc3');
 }
 // the room's walls, window and floor are still, so they are painted once like the kitchen's
 let quartersCache = null;
@@ -3998,7 +4251,7 @@ let cut = null;
 const STAIR_THINGS = ['candle', 'tooth', 'hand', 'eyes', 'trail', 'none', 'none'];
 function cutscene(kind, onEnd, place) {
   ov.hidden = true; ov.innerHTML = ''; portrait = null; mode = 'cut'; game = null; mut = null; twx = null; parts = [];
-  const dur = { down: 3.9, up: 7.2, wake: 2.6, out: 4.2, dine: 5.4, fall: 5.5 }[kind];
+  const dur = { down: 3.9, up: 7.2, wake: 2.6, out: 4.2, dine: 5.4, fall: 5.5, escape: 10.8 }[kind];
   cut = { kind, t: 0, dur, onEnd, place, step: -1, thing: pick(STAIR_THINGS), thingAt: Math.floor(rnd(3, 7)), thingX: rnd(-.6, .6), figure: (kind === 'up' || kind === 'out') && Math.random() < .35, figX: rnd(-2.2, 2.2), creak: false };
 }
 // out: a walk in the dark with the lamp, toward tonight's place. Each place has its own shapes at the end of the path.
@@ -4120,12 +4373,12 @@ function drawCut(c, dt) {
       if (k.figure && t < 4.3) { c.fillStyle = 'rgba(3,2,2,.92)'; c.beginPath(); c.ellipse(640, 150, 22, 28, 0, 0, TAU); c.fill(); c.fillRect(612, 176, 56, 226); c.fillStyle = 'rgba(220,210,180,.8)'; c.fillRect(630, 146, 4, 3); c.fillRect(646, 146, 4, 3); }
       c.restore();
       c.fillStyle = 'rgba(4,7,14,.72)'; c.fillRect(-40, -40, W + 80, H + 80);
-      c.fillStyle = 'rgba(150,170,200,.12)'; for (let i = 0; i < 3; i++) c.fillRect(70, 88 + i * 34, 150, 4);
       if (k.figure && t > 4.25 && t < 4.35) { c.fillStyle = 'rgba(255,255,255,.6)'; c.fillRect(-40, -40, W + 80, H + 80); }
     } else if (t < 5.6) { c.fillStyle = '#000'; c.fillRect(-40, -40, W + 80, H + 80); T('you sleep', 400, 300, 34, '#5e564a'); }
     else { drawMorning(c, (t - 5.6) / 1.6, L ? L.day + 1 : 1); }
   } else if (k.kind === 'wake') drawMorning(c, t / 2.6, L ? L.day : 1);
   else if (k.kind === 'dine') drawDine(c, t, k);
+  else if (k.kind === 'escape') drawEscape(c, t, k, dt);
   else if (k.kind === 'fall') {
     // the end: down the stairs and down again, the light below never getting closer, the dark closing in
     k.thing = 'none';
@@ -4956,7 +5209,7 @@ function titleScreen() {
         <button id="lab" type="button"><span>The Lab</span><small>the book</small></button>
         ${L ? '<button id="anew" type="button"><span>Begin again</span><small></small></button>' : ''}
       </nav>
-      ${L ? `<p class="save">Body ${Math.round(L.body)} · Mind ${Math.round(L.mind)} · ${L.teeth} teeth</p>` : ''}
+      ${L ? `<p class="save">Body ${Math.round(L.body)} · Mind ${Math.round(L.mind)} · ${L.teeth} teeth${L.escaped ? ' · you got out' : ''}</p>` : ''}
     </div>`, n => {
     n.querySelector('#go').onclick = () => { ac(); startDrone(); if (L) continueLife(); else newLife(); };
     n.querySelector('#lab').onclick = () => { ac(); startDrone(); labMenu(); };
@@ -4972,11 +5225,17 @@ function menu() {
     const lock = d.id === 'feast' && !unlocked();
     return `<button class="dish${L && !lock && stocked(d.id) === 2 ? ' ready' : ''}" data-id="${d.id}" type="button" ${lock ? 'disabled' : ''}>
       <canvas data-dish="${d.id}" width="160" height="100"></canvas>
-      <strong>${lock ? '—' : d.name}</strong><span>${d.blurb}</span>
-      ${L && NEEDS[d.id] ? `<span class="needs${stocked(d.id) === 2 ? ' ready' : ''}">${NEEDS[d.id].map(id => `<i class="${pantryHas(id) ? 'have' : ''}" title="${INGR[id].name}"><img src="${ingImg(id)}" alt="">${INGR[id].name}</i>`).join('')}${stocked(d.id) === 2 ? '<b>ready</b>' : ''}</span>` : ''}
+      <strong>${d.name}</strong>${d.id === 'feast' ? `<span class="needs">${lock ? `Not yet. Serve ${['root', 'eyes', 'sausage'].filter(id => !best[id]).map(id => DISHES.find(q => q.id === id).name).join(', ')}.` : 'For all of them at once. Do every step well.'}</span>` : `<span>${d.blurb}</span>`}
+      ${L && NEEDS[d.id] ? `<span class="needs${stocked(d.id) === 2 ? ' ready' : ''}">${NEEDS[d.id].map(id => `<i class="${pantryHas(id) ? 'have' : ''}${(L.pantry || []).some(p => p.id === id && NIGHTS_LEFT(p) <= 1) ? ' soft' : ''}" title="${INGR[id].name}"><img src="${ingImg(id)}" alt="">${INGR[id].name}</i>`).join('')}${stocked(d.id) === 2 ? '<b>ready</b>' : ''}</span>` : ''}
       ${lock ? '<span>&nbsp;</span>' : candles(best[d.id] || 0)}</button>`;
   }).join('') + (hidden ? `<div class="dish unknown"><strong>${hidden} more</strong><span>Ashe has not shown you these yet. Cook something well and she will.</span></div>` : '');
-  show(`<div class="card wide"><div class="txt">${L ? `<span class="eyebrow">Night ${L.day}</span>` : ''}<div class="menu">${cards}</div></div></div>`, n => {
+  const many = known.length > 7;
+  show(`<div class="card wide${many ? ' manycard' : ''}"><div class="txt">${L ? `<span class="eyebrow">Night ${L.day}</span>${stockHTML('across')}` : ''}<div class="menu${many ? ' many' : ''}">${cards}</div></div></div>`, n => {
+    // pointing at a recipe lights the jars on the shelf it would use
+    n.querySelectorAll('.dish[data-id]').forEach(b => {
+      const lit = on => { for (const id of NEEDS[b.dataset.id] || []) { const r = n.querySelector(`.stockrow[data-ing="${id}"]`); if (r) r.classList.toggle('lit', on); } };
+      b.onmouseenter = () => lit(true); b.onmouseleave = () => lit(false);
+    });
     n.querySelectorAll('canvas[data-dish]').forEach(cn => {
       const x = cn.getContext('2d', { willReadFrequently: true }), d = DISHES.find(q => q.id === cn.dataset.dish);
       x.fillStyle = '#0d0b09'; x.fillRect(0, 0, 160, 100); x.save(); x.scale(.5, .5);
@@ -5011,7 +5270,7 @@ function stepCard() {
   const st = run.steps[run.idx], info = stepInfo(st);
   const omen = (st.m ? `<p class="omen">${pick(OMEN[st.m])}</p>` : '') + (st.proc ? st.proc.twists.map(t => `<p class="omen">${LAB_TWIST[t]}</p>`).join('') : '');
   show(`<div class="card">${P(st.m ? run.guest.id : 'ashe')}<div class="txt">
-    <span class="eyebrow">${run.idx + 1} / ${run.steps.length}</span>
+    <span class="eyebrow">${run.idx + 1} / ${run.steps.length}${run.dish.id === 'feast' ? ` · every step must score ${FEAST_HOLD} or more` : ''}</span>
     <h2>${info.title}</h2>${omen}<p>${info.hint}</p>
     ${L && L.sharp && (!run.lab || run.life) ? '<span class="eyebrow">The knives are sharp · more time</span>' : ''}
     <div class="btns"><button id="go" type="button">Begin</button></div></div></div>`, n => n.querySelector('#go').onclick = beginStep);
@@ -5038,6 +5297,7 @@ function resultCard(score) {
     <span class="eyebrow">${stepInfo(run.steps[run.idx]).title}</span>
     <div class="grade" style="color:${col}">${word}</div>
     <span class="eyebrow">${score}</span>
+    ${run.dish.id === 'feast' ? `<p class="omen">${score >= FEAST_HOLD ? 'It holds.' : 'It did not hold. You can still finish, but the house will keep you.'}</p>` : ''}
     <div class="btns"><button id="go" type="button">${last ? 'Serve' : 'Next'}</button></div></div></div>`,
     n => n.querySelector('#go').onclick = () => { if (last) serve(); else { run.idx++; stepCard(); } });
 }
@@ -5077,19 +5337,23 @@ function verdict() {
   const page = notePage('night') || (mutN ? notePage('guest') : '');
   // a good night, and Ashe shows you something new
   const learned = !run.lab && run.dish.id !== 'feast' && st >= 2 ? learnDish() : null;
+  // the Feast: every step well done and the house lets go, and it does not let the mind go first
+  const feast = run.dish.id === 'feast', escaped = feast && run.scores.every(s => s >= FEAST_HOLD);
+  if (escaped) L.mind = Math.max(1, L.mind);
   L.sharp = false; L.phase = 'up'; saveLife();
   show(`<div class="card verdict">${P(g.id)}<div class="txt">
     <span class="eyebrow">${run.dish.name}</span>
     ${candles(st, true)}
     <p class="omen">${g.verdict[st]}</p>
     <div class="scores">${rows}</div>
+    ${escaped ? '<p class="omen">They have all been fed. Above you, something in the house splits.</p>' : feast ? '<p class="omen">One of the steps did not hold. The house keeps you.</p>' : ''}
     ${opened ? '<p class="omen">Something else is on the stairs.</p>' : ''}
     ${learned ? `<p class="omen">Ashe watched you work. She shows you something new: <b>${learned.name}</b>.</p>` : ''}
     ${page}
     <div class="btns"><button id="go" type="button">Go up</button></div></div>
     <div class="txt">${ledger}</div></div>`,
     n => {
-      n.querySelector('#go').onclick = () => { if (L.mind <= 0) return afterNight(); L.odd = pickOdd(); saveLife(); cutscene('up', afterNight); };
+      n.querySelector('#go').onclick = () => { if (escaped) return escapeHouse(); if (L.mind <= 0) return afterNight(); L.odd = pickOdd(); saveLife(); cutscene('up', afterNight); };
       // the count climbs as each tooth drops in
       const tc = n.querySelector('#tcount'), shown = Math.min(earned, 16);
       for (let i = 1; i <= shown; i++) setTimeout(() => { if (!tc.isConnected) return; tc.textContent = before.teeth + (i === shown ? earned : i); tone(900 + i * 30, .04, 'square', .015); }, 400 + i * 120 + 250);
@@ -5343,8 +5607,10 @@ function frame(now) {
     drawParts(c, dt);
   }
   if (mode !== 'day' && mode !== 'cut') drawLight(c);
+  if (mode === 'day' && L) drawToothJar(c, dt);
   // the guest's doings sit above the lamp's dark, or they would vanish at the edges where they happen
   if (game && mode === 'play') { drawPres(c); drawRuleTop(c); }
+  if (game && game.top && mode === 'play') game.top(c, TT);
   if (game && run && run.gather && (mode === 'play' || mode === 'ready' || mode === 'end')) drawBasket(c);
   // in play the hand belongs to the picture (lit, graded, dithered with it); only when a menu or close-up is up
   // does it move to the layer above them, so it is never in two places at once
