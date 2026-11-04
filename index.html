@@ -452,7 +452,58 @@ function startDrone() {
   g.gain.value = .04; lp.type = 'lowpass'; lp.frequency.value = 180;
   for (const f of [41.2, 41.7, 61.7]) { const o = a.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(); }
   const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = .05; lg.gain.value = 90; lfo.connect(lg).connect(lp.frequency); lfo.start();
-  lp.connect(g).connect(master);
+  lp.connect(g).connect(master); droneGain = g;
+}
+/* ---------- the song at the way out ----------
+   Comes in from 0:42 of the track as you start up the stairs. At 0:55 (the crescendo, which the cutscene lands on) it warps:
+   it sags flat and wobbles like old tape, and most of it goes through a distortion, a slow throb and a dark echo.
+   It plays on over the last card, fades as the track ends, and stops when you leave the card.
+   It lives in its own script so the game does not carry it until the Feast is cooked. */
+const SONG_FROM = 42, SONG_CRESC = 55, SONG_FADE_AT = 96, SONG_SAG = -80, SONG_LEVEL = .38, SONG_DULL = 3000;
+let droneGain = null;
+const song = { buf: null, loading: false, nodes: null, want: null };
+function preloadSong() {
+  if (song.buf || song.loading || !ac()) return; song.loading = true;
+  const s = document.createElement('script'); s.src = 'twisted-melodies.js';
+  s.onload = () => {
+    const bin = atob(window.GRISTLE_SONG || ''); window.GRISTLE_SONG = null;
+    const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    AC.decodeAudioData(bytes.buffer).then(b => { song.buf = b; song.loading = false; if (song.want !== null) playSong((performance.now() - song.want) / 1000); }).catch(() => { song.loading = false; });
+  };
+  s.onerror = () => { song.loading = false; };
+  document.head.appendChild(s);
+}
+function startSong() { song.want = performance.now(); if (song.buf) playSong(0); else preloadSong(); }
+// el: how many seconds late we are, if the song was still loading when the stairs began
+function playSong(el) {
+  if (song.nodes) return;
+  const a = AC, t = a.currentTime, rate = Math.pow(2, SONG_SAG / 1200), cres = t + Math.max(.05, SONG_CRESC - SONG_FROM - el), outAt = cres + (SONG_FADE_AT - SONG_CRESC) / rate;
+  const src = a.createBufferSource(), fade = a.createGain(), dry = a.createGain(), wet = a.createGain(), comp = a.createDynamicsCompressor();
+  src.buffer = song.buf;
+  fade.gain.setValueAtTime(0, t); fade.gain.linearRampToValueAtTime(1, t + Math.max(1, 8 - el));
+  fade.gain.setValueAtTime(1, outAt); fade.gain.linearRampToValueAtTime(0, outAt + 18);
+  dry.gain.setValueAtTime(1, t); dry.gain.setValueAtTime(1, cres); dry.gain.linearRampToValueAtTime(.22, cres + 1);
+  wet.gain.setValueAtTime(0, t); wet.gain.setValueAtTime(0, cres); wet.gain.linearRampToValueAtTime(.55, cres + 1);
+  // the warp: it sags flat, then wobbles
+  src.detune.setValueAtTime(0, cres); src.detune.linearRampToValueAtTime(SONG_SAG, cres + 1.2);
+  const wob = a.createOscillator(), wobG = a.createGain(); wob.frequency.value = .7; wobG.gain.setValueAtTime(0, cres); wobG.gain.linearRampToValueAtTime(30, cres + 3); wob.connect(wobG).connect(src.detune);
+  // the distortion, darkened, with a throb on it and an echo that keeps coming back
+  const shape = a.createWaveShaper(), curve = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1023.5 - 1; curve[i] = Math.tanh(x * 7) / Math.tanh(7); } shape.curve = curve; shape.oversample = '4x';
+  const dark = a.createBiquadFilter(), throb = a.createGain(), thLfo = a.createOscillator(), thG = a.createGain(); dark.type = 'lowpass'; dark.frequency.value = 2600; throb.gain.value = .75; thLfo.frequency.value = 5.2; thG.gain.value = .25; thLfo.connect(thG).connect(throb.gain);
+  const delay = a.createDelay(1), echoDark = a.createBiquadFilter(), fb = a.createGain(); delay.delayTime.value = .31; echoDark.type = 'lowpass'; echoDark.frequency.value = 1400; fb.gain.value = .38;
+  src.connect(fade); fade.connect(dry).connect(comp); fade.connect(shape).connect(dark).connect(throb).connect(wet).connect(comp);
+  wet.connect(delay).connect(echoDark).connect(fb).connect(delay); echoDark.connect(comp);
+  // well back in the mix and dulled, as if it were coming through a wall
+  const far = a.createBiquadFilter(), level = a.createGain(); far.type = 'lowpass'; far.frequency.value = SONG_DULL; level.gain.value = SONG_LEVEL; comp.connect(far).connect(level).connect(master);
+  src.start(t, SONG_FROM + el); src.stop(outAt + 18.5); wob.start(); thLfo.start();
+  song.nodes = { src, fade, wob, thLfo, comp, cres };
+  if (droneGain) { droneGain.gain.cancelScheduledValues(t); droneGain.gain.setValueAtTime(droneGain.gain.value, t); droneGain.gain.linearRampToValueAtTime(0, t + 6); }
+}
+function stopSong(sec = 1.5) {
+  song.want = null; const n = song.nodes; if (!n) return; song.nodes = null;
+  const t = AC.currentTime; n.fade.gain.cancelScheduledValues(t); n.fade.gain.setValueAtTime(n.fade.gain.value, t); n.fade.gain.linearRampToValueAtTime(0, t + sec);
+  n.src.stop(t + sec + .05); n.wob.stop(t + sec + .05); n.thLfo.stop(t + sec + .05); setTimeout(() => n.comp.disconnect(), (sec + .3) * 1000);
+  if (droneGain) { droneGain.gain.cancelScheduledValues(t); droneGain.gain.setValueAtTime(droneGain.gain.value, t); droneGain.gain.linearRampToValueAtTime(.04, t + sec + 1.5); }
 }
 const moan = () => { const n = performance.now(); if (n - lastMoan < 160) return; lastMoan = n; tone(rnd(140, 220), .35, 'sawtooth', .025, -60); noise(.25, .03, rnd(700, 1400)); };
 const sGood = () => { tone(196, .9, 'sine', .07); tone(293, .7, 'sine', .03); };
@@ -1433,38 +1484,53 @@ function Grind(m) {
   return g;
 }
 
-// THE CASING: stitch the seam shut, hole by hole and in order, before each one tears. It pushes back from inside.
+// THE CASING: stitch the seam shut, hole by hole and in order, before each one tears. It pushes back from inside: soon,
+// often, and harder as the seam closes. Something rolls along under the skin and the seam heaves around it. Stab and miss
+// while it heaves and the needle slips.
 function Sew(m) {
-  const inv = m === 'invert', N = 10;
-  const g = { dur: 22, now: 0, holes: [], next: 0, misses: 0, sewn: 0, push: 0, pushT: rnd(2.5, 4), warn: 0, life: 0, max: 1 };
+  const inv = m === 'invert', N = 13;
+  const g = { dur: 22, now: 0, holes: [], next: 0, misses: 0, sewn: 0, push: 0, pushT: rnd(.9, 1.5), warn: 0, life: 0, max: 1, slipT: 0, bulge: 400 };
   for (let i = 0; i < N; i++) { const t = i / (N - 1); g.holes.push({ bx: 170 + t * 460, by: 310 + Math.sin(t * 5.5) * 38, state: 'wait', ph: rnd(0, TAU) }); }
   const order = inv ? g.holes.slice().reverse() : g.holes;
   order.forEach((h, i) => { h.n = i + 1; });
-  const pos = h => [h.bx + Math.sin(g.now * 1.7 + h.ph) * 4, h.by + Math.sin(g.now * 2.1 + h.ph) * 4 + g.push * 22 * Math.sin(h.bx * .02 + g.now * 6)];
-  const open = () => { if (g.next < N) { g.max = g.life = Math.max(1.8, 3.4 - g.next * .15); order[g.next].state = 'open'; } };
+  // the heave is worst close to whatever is rolling under the skin
+  const heave = h => g.push * (50 + g.sewn * 3) * (.5 + Math.exp(-(((h.bx - g.bulge) / 130) ** 2)));
+  const pos = h => [h.bx + Math.sin(g.now * 1.7 + h.ph) * 4 + heave(h) * .3 * Math.cos(h.bx * .02 + g.now * 5), h.by + Math.sin(g.now * 2.1 + h.ph) * 4 + heave(h) * Math.sin(h.bx * .02 + g.now * 6)];
+  g.pos = pos; g.order = order;
+  const open = () => { if (g.next < N) { g.max = g.life = g.next ? Math.max(1.05, 1.75 - g.next * .06) : 2.6; order[g.next].state = 'open'; } };
   open();
   g.down = (x, y) => {
     const h = order[g.next]; if (!h) return;
     const [hx, hy] = pos(h);
-    if (Math.hypot(x - hx, y - hy) < 28) { h.state = 'sewn'; g.sewn++; g.next++; tone(330 + g.sewn * 20, .1, 'triangle', .05); burst(hx, hy, '#6e1410', 5, 90); open(); return; }
+    if (Math.hypot(x - hx, y - hy) < 23) { h.state = 'sewn'; g.sewn++; g.next++; tone(330 + g.sewn * 20, .1, 'triangle', .05); burst(hx, hy, '#6e1410', 5, 90); open(); return; }
     const wrong = order.find(o => o.state === 'wait' && Math.hypot(x - pos(o)[0], y - pos(o)[1]) < 24);
-    if (wrong) { g.misses++; hurt(.3); sBad(); }
+    if (wrong) { g.misses++; hurt(.3); sBad(); return; }
+    // it was heaving and you stabbed where the hole had been
+    if (g.push > .15 && Math.hypot(x - hx, y - hy) < 120) { g.misses++; g.slipT = .9; hurt(.15); noise(.08, .05, 1500); burst(x, y, '#8e1b12', 4, 70); }
   };
+  // each heave tears out the stitch you made last, and you have to put it back in
+  function rip() {
+    const last = order[g.next - 1]; if (!last || last.state !== 'sewn' || g.next >= N || g.sewn < 2) return;
+    order[g.next].state = 'wait'; last.state = 'wait'; g.next--; g.sewn--; g.ripT = 1.1; open();
+    const [x, y] = pos(last); burst(x, y, '#8e1b12', 12, 170); noise(.12, .07, 1100);
+  }
   g.update = dt => {
-    g.now += dt;
+    g.ripT = (g.ripT || 0) - dt; g.now += dt; g.slipT -= dt; g.bulge = 400 + Math.sin(g.now * 1.9) * 250;
     if (g.next < N) { g.life -= dt; if (g.life <= 0) { const h = order[g.next]; h.state = 'torn'; const [hx, hy] = pos(h); burst(hx, hy, '#8e1b12', 16, 200); hurt(.4); sBad(); g.next++; open(); } }
-    if (g.warn > 0) { g.warn -= dt; if (g.warn <= 0) { g.push = 1; moan(); } }
-    else if (g.push > 0) g.push = Math.max(0, g.push - dt * .8);
-    else { g.pushT -= dt; if (g.pushT <= 0) { g.pushT = rnd(3, 4.5); g.warn = .6; tone(70, .5, 'sawtooth', .04, 20); } }
+    if (g.warn > 0) { g.warn -= dt; if (g.warn <= 0) { g.push = 1; moan(); shake = Math.max(shake, 5); rip(); } }
+    else if (g.push > 0) g.push = Math.max(0, g.push - dt * .45);
+    else { g.pushT -= dt; if (g.pushT <= 0) { g.pushT = rnd(1.1, 2) - g.sewn * .05; g.warn = .45; tone(70, .45, 'sawtooth', .05, 20); } }
   };
   g.done = () => g.next >= N;
-  g.score = () => clamp((g.sewn - g.misses * .5) / N) * 100;
+  g.score = () => clamp((g.sewn - g.misses * .75) / N) * 100;
   g.draw = (c, t) => {
-    const th = 1 + (g.warn > 0 ? Math.sin(t * 40) * .01 : 0) + g.push * .03;
+    const th = 1 + (g.warn > 0 ? Math.sin(t * 40) * .012 : 0) + g.push * .06 * (.7 + .3 * Math.sin(t * 9));
     c.save(); c.translate(400, 310); c.scale(th, th); c.translate(-400, -310);
     const cg = c.createLinearGradient(0, 190, 0, 430); cg.addColorStop(0, '#c9a898'); cg.addColorStop(.5, '#a88070'); cg.addColorStop(1, '#5a3a32');
     c.fillStyle = cg; c.beginPath(); c.roundRect(110, 200, 580, 220, 110); c.fill();
     c.strokeStyle = 'rgba(90,50,110,.35)'; c.lineWidth = 2; for (let i = 0; i < 9; i++) { c.beginPath(); c.moveTo(140 + i * 60, 210); c.bezierCurveTo(160 + i * 60, 260, 120 + i * 60, 330, 150 + i * 60, 410); c.stroke(); }
+    // what is rolling around in there, showing through the skin
+    if (g.push > 0 || g.warn > 0) { const k = Math.max(g.push, .35), w = 64 + k * 38, hg = c.createRadialGradient(g.bulge - 12, 290, 6, g.bulge, 310, w * 1.1); hg.addColorStop(0, `rgba(228,196,178,${(.6 * k).toFixed(2)})`); hg.addColorStop(.55, `rgba(120,70,60,${(.35 * k).toFixed(2)})`); hg.addColorStop(1, 'rgba(50,20,20,0)'); c.fillStyle = hg; c.beginPath(); c.ellipse(g.bulge, 310, w, w * .85, 0, 0, TAU); c.fill(); }
     c.restore();
     const pts = g.holes.map(pos);
     c.strokeStyle = '#2a0604'; c.lineWidth = 12; c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
@@ -1480,7 +1546,9 @@ function Sew(m) {
       else if (h.n === g.next + 2) T(String(h.n), x, y - 28, 20, '#6b6152');
     }
     g.tool(c, t);
-    if (g.warn > 0) T('it pushes', 400, 170, 30, '#a3241a');
+    if (g.ripT > 0) T('a stitch tore out', 400, 170, 30, '#c8402a');
+    else if (g.slipT > 0) T('the needle slipped', 400, 170, 30, '#c8402a');
+    else if (g.warn > 0 || g.push > .4) T('it pushes', 400, 170, 30, '#a3241a');
     else if (g.now < 3.5) T('tap the holes in order', 400, 520, 24, '#8c826f');
   };
   // the needle: its point is the point, the eye trails down and to the right like a cursor
@@ -4054,7 +4122,7 @@ const endStatsHTML = R => `<div class="endstats">
 const FEAST_HOLD = 65; // TOLERATED or better, on every step
 function escapeHouse() {
   L.escaped = (L.escaped || 0) + 1; L.odd = pickOdd(); L.phase = 'up'; saveLife();
-  cutscene('escape', escapeCard);
+  cutscene('escape', escapeCard); startSong();
 }
 function escapeCard() {
   mode = 'idle'; const R = deathReport();
@@ -4068,16 +4136,16 @@ function escapeCard() {
     `<div class="btns"><button id="go" type="button">Main menu</button></div>`
   ];
   show(`<div class="card solo end"><div class="txt" style="justify-items:center">${lines.map((l, i) => l.replace(/^<(\w+)/, `<$1 style="--i:${i}"`)).join('')}</div></div>`, n => {
-    n.querySelector('#go').onclick = () => fade(true, 1400, () => { titleScreen(); fade(false, 1600); });
+    n.querySelector('#go').onclick = () => { stopSong(1.4); fade(true, 1400, () => { titleScreen(); fade(false, 1600); }); };
   }, 'dawn');
 }
 // the room splits along a jagged line, and what is behind it is too bright to look at
 function drawEscape(c, t, k, dt) {
   if (t < 2.2) { const camZ = drawStairs(c, TT, clamp(t / 2.2), true, 0), s = Math.floor(camZ); if (s !== k.step) { k.step = s; footstep(); } return; }
   if (t < 3) { if (!k.creak) { k.creak = true; tone(170, .9, 'sawtooth', .03, -70); noise(.6, .03, 900); } drawStairs(c, TT, 1, true, clamp((t - 2.2) / .8)); return; }
-  if (t < 6.6) {
-    const q = clamp((t - 3.4) / 3), w = q * q * 190;
-    if (!k.rumble && t > 3.4) { k.rumble = true; noise(3.2, .06, 90); tone(44, 3.2, 'sawtooth', .05, 30); }
+  if (t < 8) {
+    const q = clamp((t - 3.4) / 4.4), w = q * q * 190;
+    if (!k.rumble && t > 3.4) { k.rumble = true; noise(4.6, .05, 90); tone(44, 4.6, 'sawtooth', .04, 30); }
     if (t > 3.4) shake = Math.max(shake, 2 + q * 7);
     if (Math.random() < q * .15) noise(.07, .05, 1800);
     const z = 1.3 + q * .5;
@@ -4100,12 +4168,13 @@ function drawEscape(c, t, k, dt) {
     for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + TT * .08 + Math.sin(i * 3.3) * .3, sp = .07 + (i % 3) * .03, L2 = 240 + q * 620; c.fillStyle = `rgba(255,214,140,${(q * .16).toFixed(3)})`; c.beginPath(); c.moveTo(400, 280); c.lineTo(400 + Math.cos(a - sp) * L2, 280 + Math.sin(a - sp) * L2); c.lineTo(400 + Math.cos(a + sp) * L2, 280 + Math.sin(a + sp) * L2); c.closePath(); c.fill(); }
     const g2 = c.createRadialGradient(400, 280, 10, 400, 280, 120 + q * 420); g2.addColorStop(0, `rgba(255,226,170,${(.1 + q * .55).toFixed(2)})`); g2.addColorStop(1, 'rgba(255,190,110,0)'); c.fillStyle = g2; c.fillRect(-40, -40, W + 80, H + 80);
     c.globalCompositeOperation = 'source-over';
-    if (t > 5.9) { c.fillStyle = `rgba(255,248,228,${clamp((t - 5.9) / .7).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80); }
+    if (t > 7.3) { c.fillStyle = `rgba(255,248,228,${clamp((t - 7.3) / .7).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80); }
     return;
   }
-  if (t < 9.8) {
+  // the run ends in white at 13s, exactly as the song hits its crescendo
+  if (t < 13) {
     // through it, running
-    const p = clamp((t - 6.6) / 3.2), camZ = p * p * 3 + p * 8, f = 330, END = 13, bob = Math.abs(Math.sin(camZ * 3.2)) * 18, vx = 400 + Math.sin(camZ * 1.6) * 14, hz = 250 + bob;
+    const p = clamp((t - 8) / 5), camZ = p * p * 3 + p * 8, f = 330, END = 13, bob = Math.abs(Math.sin(camZ * 3.2)) * 18, vx = 400 + Math.sin(camZ * 1.6) * 14, hz = 250 + bob;
     const s = Math.floor(camZ * 1.6); if (s !== k.step) { k.step = s; footstep(); if (s % 2) noise(.1, .03, 700); }
     const P = (x, y, z) => { const d = Math.max(.1, z - camZ); return [vx + x * f / d, hz - (y - 1.5) * f / d]; };
     const col = (base, z) => { const m = clamp(1 - (END - z) / 9); return rgb(base.map((v, i) => v * .55 + ([255, 226, 170][i] - v * .55) * m * m * m)); };
@@ -4136,11 +4205,11 @@ function drawEscape(c, t, k, dt) {
     for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + t * .25, sp = .06 + (i % 2) * .05; c.fillStyle = `rgba(255,214,140,${(.05 + p * .1).toFixed(3)})`; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + Math.cos(a - sp) * 800, oy + Math.sin(a - sp) * 800); c.lineTo(ox + Math.cos(a + sp) * 800, oy + Math.sin(a + sp) * 800); c.closePath(); c.fill(); }
     for (let i = 0; i < 30; i++) { const a = i * 2.4, m = (t * (.7 + (i % 5) * .15) + i * .37) % 1, r = m * m * 560, sz = 1 + m * 3; c.fillStyle = `rgba(255,236,190,${(m * .8).toFixed(2)})`; c.fillRect(ox + Math.cos(a) * r, oy + Math.sin(a) * r, sz, sz); }
     c.globalCompositeOperation = 'source-over';
-    if (t < 7) { c.fillStyle = `rgba(255,248,228,${(1 - (t - 6.6) / .4).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80); }
-    const hz2 = clamp((p - .5) / .5); c.fillStyle = `rgba(255,248,228,${(hz2 * hz2).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80);
+    if (t < 8.4) { c.fillStyle = `rgba(255,248,228,${(1 - (t - 8) / .4).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80); }
+    const hz2 = clamp((p - .62) / .38); c.fillStyle = `rgba(255,248,228,${(hz2 * hz2).toFixed(3)})`; c.fillRect(-40, -40, W + 80, H + 80);
     return;
   }
-  if (!k.sung) { k.sung = true; tone(262, 3, 'sine', .05); tone(392, 3, 'sine', .035); tone(523, 2.6, 'sine', .025); }
+  if (!k.sung) { k.sung = true; shake = Math.max(shake, 8); if (!song.nodes) { tone(262, 3, 'sine', .05); tone(392, 3, 'sine', .035); tone(523, 2.6, 'sine', .025); } }
   c.fillStyle = '#fff8e6'; c.fillRect(-40, -40, W + 80, H + 80);
 }
 function endCard(R) {
@@ -4327,7 +4396,7 @@ let cut = null;
 const STAIR_THINGS = ['candle', 'tooth', 'hand', 'eyes', 'trail', 'none', 'none'];
 function cutscene(kind, onEnd, place) {
   ov.hidden = true; ov.innerHTML = ''; portrait = null; mode = 'cut'; game = null; mut = null; twx = null; parts = [];
-  const dur = { down: 3.9, up: 7.2, wake: 2.6, out: 4.2, dine: 5.4, fall: 5.5, escape: 10.8 }[kind];
+  const dur = { down: 3.9, up: 7.2, wake: 2.6, out: 4.2, dine: 5.4, fall: 5.5, escape: 17.5 }[kind];
   cut = { kind, t: 0, dur, onEnd, place, step: -1, thing: pick(STAIR_THINGS), thingAt: Math.floor(rnd(3, 7)), thingX: rnd(-.6, .6), figure: (kind === 'up' || kind === 'out') && Math.random() < .35, figX: rnd(-2.2, 2.2), creak: false };
 }
 // out: a walk in the dark with the lamp, toward tonight's place. Each place has its own shapes at the end of the path.
@@ -5275,7 +5344,7 @@ const candles = (n, big) => `<span class="candles${big ? ' big' : ''}" aria-labe
 const starsFor = s => s >= 85 ? 3 : s >= 60 ? 2 : s >= 30 ? 1 : 0;
 
 function titleScreen() {
-  mode = 'idle'; mut = null; game = null; run = null;
+  stopSong(); mode = 'idle'; mut = null; game = null; run = null;
   show(`<div class="title">
       <h1>Gristle</h1>
       <div class="rule"></div>
@@ -5326,7 +5395,7 @@ function menu() {
   });
 }
 function startDish(d) {
-  const feast = d.id === 'feast';
+  const feast = d.id === 'feast'; if (feast) preloadSong();
   const hinted = !feast && L && L.hint && GUESTS.find(g => g.id === L.hint);
   const guest = feast ? guestById('many') : hinted || pick(GUESTS);
   if (L && L.hint) { L.hint = null; saveLife(); }
@@ -5728,6 +5797,13 @@ function frame(now) {
   drawCU(dt);
   requestAnimationFrame(frame);
 }
+// for testing the ending: type "escape" at any time to jump straight to it, on the current save or a new one
+let typed = '';
+window.addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT' || e.key.length !== 1) return;
+  typed = (typed + e.key.toLowerCase()).slice(-6);
+  if (typed === 'escape') { typed = ''; ac(); startDrone(); if (!L) L = NEW_LIFE(); endCU(); escapeHouse(); }
+});
 loadLife();
 titleScreen();
 requestAnimationFrame(frame);
