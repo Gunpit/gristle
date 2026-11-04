@@ -140,9 +140,38 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .stockrow.none em { margin: 0; padding: 0; }
 .stockrow.lit { background: rgba(157,163,90,.3); }
 .stock.onwall { position: absolute; left: 1.4cqw; top: 1.4cqw; width: min(26cqw, 230px); min-width: 180px; padding: 8px 10px; background: rgba(8,6,5,.82); border: 1px solid var(--edge); box-shadow: 3px 3px 0 #000; }
-.stock.across { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: center; padding-bottom: 6px; border-bottom: 1px solid var(--edge); }
-.stock.across .sect { width: 100%; }
-.stock.across .stockrow em { margin-left: 2px; }
+.stock.onwall { cursor: pointer; }
+.stock.onwall:hover { background: rgba(30,24,18,.92); border-color: #8c826f; }
+.menuhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.menuhead button { font-size: clamp(14px, 1.9cqw, 18px); padding: .1em .8em; }
+.menuhead .soft { color: #e0604a; }
+/* the pantry screen: jars on the left, everything about the chosen one on the right */
+.card.wide.pantrycard { width: min(100%, 900px); box-sizing: border-box; padding: 14px 18px; }
+.pbox { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; align-items: start; }
+.pslots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.pslot { display: grid; justify-items: center; gap: 1px; padding: 5px 2px; min-height: 84px; background: #12100d; border: 1px solid var(--edge); box-shadow: none; text-transform: none; letter-spacing: 0; font-family: var(--pix); font-size: 14px; line-height: 1.05; color: var(--bone); text-align: center; box-sizing: border-box; }
+.pslot:hover { background: #1d1813; }
+.pslot img { width: 36px; height: 36px; image-rendering: pixelated; }
+.pslot b { font-weight: 400; }
+.pslot .pip { font-size: 9px; letter-spacing: 1px; color: #c9b98e; }
+.pslot em { font-style: normal; font-size: 13px; color: #a89c88; }
+.pslot.soft { border-color: #a3241a; } .pslot.soft em { color: #e0604a; } .pslot.soft img { filter: brightness(.7) sepia(.5); }
+.pslot.on { border-color: #e8c070; box-shadow: 0 0 0 1px #e8c070; background: #221b13; }
+.pslot.none { border-style: dashed; border-color: #3a3128; background: none; }
+.pailrow .pslot:not(.none):not(.on):not(.soft) { border-color: #3f5a58; background: #101715; }
+.pailrow .pslot.none { border-color: #2c3d3b; background: rgba(40,60,60,.1); }
+.pdetail { display: grid; gap: 7px; padding: 10px 12px; background: rgba(0,0,0,.28); border: 1px solid var(--edge); min-height: 260px; align-content: start; }
+.phead { display: flex; gap: 10px; align-items: center; }
+.phead img { width: 56px; height: 56px; image-rendering: pixelated; }
+.phead h2 { font-size: clamp(20px, 3cqw, 28px); }
+.pip.big { font-size: 13px; letter-spacing: 2px; color: #e8c860; font-style: normal; }
+.pdetail dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-family: var(--pix); font-size: 16px; line-height: 1.15; }
+.pdetail dt { color: #8c826f; } .pdetail dd { margin: 0; color: var(--bone); } .pdetail dd.soft { color: #e0604a; }
+.puses { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-family: var(--pix); font-size: 15px; line-height: 1.1; }
+.puses li { display: flex; justify-content: space-between; gap: 8px; color: var(--bone); }
+.puses b { font-weight: 400; } .puses i { font-style: normal; color: #a89c88; white-space: nowrap; } .puses li.ready i { color: #9da35a; }
+.pdetail #toss { justify-self: start; font-size: 15px; }
+@media (max-width: 640px) { .pbox { grid-template-columns: 1fr; } }
 /* a phone has no wall to spare: it keeps the row of little jars in the card instead */
 @media (max-width: 640px) { .stock.onwall { display: none; } }
 @media (min-width: 641px) { .card.dock .vitals ~ .shelf.small { display: none; } }
@@ -173,6 +202,8 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .jar.old img { filter: brightness(.5) sepia(.6); } .jar.old em::after { content: ' · going soft'; color: #a3241a; }
 .jar.empty { width: 44px; height: 44px; border: 1px dashed #3a3128; border-radius: 50%; margin: 0 7px 18px; }
 .jar.empty::after { display: none; }
+.shelf.pail { border-bottom-color: #3a2a1e; background: rgba(40,60,60,.14); padding-inline: 4px; }
+.shelf.tight { gap: 4px 2px; padding: 3px 0; } .shelf.tight .jar { width: 46px; } .shelf.tight .jar img { width: 30px; height: 30px; } .shelf.tight .jar em { font-size: 12px; } .shelf.tight .jar.empty { width: 30px; height: 30px; margin: 0 8px 6px; } .shelf.tight .jar.old em::after { content: ''; }
 .shelf { display: flex; flex-wrap: wrap; gap: 6px 4px; padding: 6px 0; border-bottom: 3px solid #2a221b; }
 .shelf.small .jar { width: 40px; } .shelf.small .jar img { width: 30px; height: 30px; } .shelf.small .jar em { display: none; } .shelf.small .jar.empty { width: 30px; height: 30px; margin: 0 5px 6px; }
 .finds { display: flex; gap: 2px; margin-top: 4px; }
@@ -219,6 +250,13 @@ button.ghost { background: transparent; border-color: var(--edge); }
 .shopcard .list button em { line-height: 1.25; }
 .shopcard .list button em.say { font-size: 13px; }
 .shopcard .list button em.fx { font-size: 14px; }
+.card.dock.gathercard { width: min(100%, max(320px, 72cqw)); box-sizing: border-box; padding: 12px 18px 14px; }
+.card.dock.gathercard .txt { gap: 6px; }
+.gathercard .omen.big { font-size: clamp(16px, 2.4cqw, 21px); }
+.gathercard .list { grid-template-columns: 1fr 1fr; column-gap: 14px; }
+.gathercard .links { align-items: center; }
+@container (max-width: 640px) { .gathercard .list { grid-template-columns: 1fr; } }
+.pantrycard .sect { color: #a89c88; }
 .card.dock.shopcard { padding: 12px 18px 14px; }
 .card.dock.shopcard .txt { gap: 6px; }
 .shopcard .omen { font-size: clamp(15px, 2.2cqw, 20px); }
@@ -2283,12 +2321,12 @@ function ShakeClassic() {
 // THE WELL: cast, wait, strike, reel. Hold to let the line down and let go at the depth you want; each depth has its own
 // catch, and you can see them swimming. When the float goes under, click. Then the fight: a column at the right holds the
 // thing on your line. Hold to lift your grip, let go to let it sink. While your grip is on it, it comes up. Nothing snaps
-// and nothing hurts you. The worst that happens is it gets away. Time stands still from the bite to the landing.
+// and nothing hurts you. The worst that happens is it gets away, or the time runs out with it still on the line.
 const FISHES = {
-  worm: { len: 6, r: 9, size: [6, 13], col: [178, 122, 116], gain: .15, drain: .07, hold: [.9, 1.6], jump: .28, rate: 2.2, tooth: .25, sp: 26 },
-  eel: { len: 9, r: 6, size: [14, 30], col: [128, 138, 118], gain: .14, drain: .08, hold: [.6, 1.2], jump: .4, rate: 3.2, tooth: .4, sp: 46 },
-  lamprey: { len: 7, r: 8, size: [18, 36], col: [104, 98, 106], gain: .13, drain: .08, hold: [1.1, 1.9], jump: .5, rate: 5, tooth: .55, sp: 36 },
-  hand: { len: 6, r: 8, size: [20, 40], col: [196, 200, 190], gain: .12, drain: .08, hold: [.7, 1.2], jump: .55, rate: 4.5, tooth: 1, sp: 20 }
+  worm: { len: 6, r: 9, size: [6, 13], col: [178, 122, 116], gain: .17, drain: .06, hold: [.9, 1.6], jump: .28, rate: 2.2, tooth: .25, sp: 26 },
+  eel: { len: 9, r: 6, size: [14, 30], col: [128, 138, 118], gain: .18, drain: .06, hold: [.7, 1.3], jump: .36, rate: 3, tooth: .4, sp: 46 },
+  lamprey: { len: 7, r: 8, size: [18, 36], col: [104, 98, 106], gain: .16, drain: .08, hold: [1.2, 2], jump: .46, rate: 5, tooth: .55, sp: 36 },
+  hand: { len: 6, r: 8, size: [20, 40], col: [196, 200, 190], gain: .15, drain: .09, hold: [.8, 1.4], jump: .5, rate: 4.5, tooth: 1, sp: 20 }
 };
 function drawFishBody(c, f, x, y, ang, t, a = 1, s = 1, wig = 1) {
   const [r0, g0, b0] = f.col, n = f.len, r = f.r;
@@ -2300,12 +2338,12 @@ function drawFishBody(c, f, x, y, ang, t, a = 1, s = 1, wig = 1) {
   }
   if (f.id === 'lamprey') { c.fillStyle = '#3c1418'; c.beginPath(); c.arc(6, 0, 9, 0, TAU); c.fill(); c.strokeStyle = '#e6dcb4'; c.lineWidth = 1.5; for (let k = 0; k < 10; k++) { const q = k / 10 * TAU; c.beginPath(); c.moveTo(6 + Math.cos(q) * 8, Math.sin(q) * 8); c.lineTo(6 + Math.cos(q) * 4, Math.sin(q) * 4); c.stroke(); } }
   else if (f.id === 'hand') { c.rotate(Math.PI / 2); openHand(c, 1.2); c.rotate(-Math.PI / 2); }
-  else { c.fillStyle = '#e6e6d2'; c.fillRect(2, -5, 3, 3); c.fillRect(2, 3, 3, 3); }
+  else if (f.id !== 'sil') { c.fillStyle = '#e6e6d2'; c.fillRect(2, -5, 3, 3); c.fillRect(2, 3, 3, 3); }
   c.restore();
 }
 function Fish() {
   const WY = 210, FLOOR = 525, X0 = 190, X1 = 610, HY = 165, TX = 668, TY = 112, TW = 44, TH = 340, BH = .3;
-  const g = { dur: 50, now: 0, got: [], phase: 'aim', x: 400, depth: 0, cd: 0, baitT: 0, dip: 0, fish: [], target: null, msg: '', msgT: 0, splash: [], first: true, ownCursor: true, b: .3, v: 0, p: .3, tgt: .3, holdT: 0, meter: .3, out: 0, tick: 0, nib: 0, nibT: 0, biteT: 0, landT: 0, on: false, snag: null, caught: null };
+  const g = { dur: 40, now: 0, got: [], phase: 'aim', x: 400, depth: 0, cd: 0, baitT: 0, dip: 0, fish: [], target: null, msg: '', msgT: 0, splash: [], first: true, ownCursor: true, b: .3, v: 0, p: .3, tgt: .3, holdT: 0, meter: .3, out: 0, tick: 0, nib: 0, nibT: 0, biteT: 0, landT: 0, on: false, snag: null, caught: null };
   const say = (s, d = 1.6) => { g.msg = s; g.msgT = d; };
   const depthY = d => WY + 14 + d * (FLOOR - WY - 70);
   const bandOf = d => d < .33 ? 'worm' : d < .66 ? 'eel' : 'lamprey';
@@ -2323,7 +2361,7 @@ function Fish() {
     const id = g.depth > .82 && Math.random() < .3 ? 'hand' : bandOf(g.depth);
     const pool = g.fish.filter(f => f.id === id && !f.flee);
     const f = pool.length ? pool.reduce((m, o) => Math.hypot(o.x - g.x, o.y - depthY(g.depth)) < Math.hypot(m.x - g.x, m.y - depthY(g.depth)) ? o : m) : spawn(id, true);
-    g.target = f; g.nib = 1 + Math.floor(Math.random() * 3); g.nibT = rnd(.35, .7); f.biting = true; f.delay = rnd(.2, .9);
+    g.target = f; g.nib = 1 + Math.floor(Math.random() * 2); g.nibT = rnd(.3, .6); f.biting = true; f.delay = rnd(.1, .5);
   }
   const release = (f, flee = 2.4) => { if (f) { f.biting = false; f.flee = flee; f.dir = f.x < g.x ? -1 : 1; } g.target = null; };
   const reelUp = () => { g.phase = 'up'; g.baitT = 1; };
@@ -2360,16 +2398,16 @@ function Fish() {
   g.update = dt => {
     g.now += dt; g.msgT -= dt; g.dip = Math.max(0, g.dip - dt * 26);
     for (const s of g.splash) s.t += dt; g.splash = g.splash.filter(s => s.t < .8);
-    // the clock only runs while you are choosing and waiting
+    // the clock keeps running through the fight; it only stops while you look at what you caught
     const f = g.target;
-    if (g.phase === 'bite' || g.phase === 'fight' || g.phase === 'land' || (f && f.nibbling)) timer += dt;
+    if (g.phase === 'land') timer += dt;
     // what swims
     for (const o of g.fish) {
       if (o === f && g.phase === 'fight') continue;
       o.flee = Math.max(0, o.flee - dt);
       if (o.biting) {
         o.delay -= dt; if (o.delay > 0) continue;
-        const by = depthY(g.depth) + 43, side = o.x < g.x ? -1 : 1, tx = g.x - 8 + side * (o.r + 4), dx = tx - o.x, dy = by - o.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(d / dt, 130);
+        const by = depthY(g.depth) + 43, side = o.x < g.x ? -1 : 1, tx = g.x - 8 + side * (o.r + 4), dx = tx - o.x, dy = by - o.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(d / dt, 180);
         o.x += dx / d * sp * dt; o.y += dy / d * sp * dt; o.ang = Math.atan2(by - o.y, g.x - o.x); o.nibbling = d < 4;
         continue;
       }
@@ -2392,7 +2430,7 @@ function Fish() {
       else if (g.target.nibbling) {
         g.nibT -= dt;
         if (g.nibT <= 0) {
-          if (g.nib-- > 0) { g.dip = 5; g.nibT = rnd(.4, .85); tone(800, .05, 'sine', .04); noise(.05, .025, 1600); }
+          if (g.nib-- > 0) { g.dip = 5; g.nibT = rnd(.35, .7); tone(800, .05, 'sine', .04); noise(.05, .025, 1600); }
           else { g.phase = 'bite'; g.biteT = g.first ? 1.2 : .85; g.dip = 18; splash(g.x, true); shake = Math.max(shake, 7); tone(120, .3, 'sine', .09, -40); noise(.3, .07, 600); }
         }
       }
@@ -2500,8 +2538,12 @@ function Fish() {
       // the tooth that came loose
       if (g.snag) { const s = g.snag, y = yOf(s.y) + Math.sin(t * 4) * 2; c.fillStyle = s.life < 1.2 && Math.sin(t * 20) > 0 ? '#8c826f' : '#f4eedc'; c.beginPath(); c.moveTo(TX + TW / 2 - 7, y - 7); c.lineTo(TX + TW / 2 + 7, y - 7); c.lineTo(TX + TW / 2 + 4, y + 8); c.lineTo(TX + TW / 2, y + 2); c.lineTo(TX + TW / 2 - 4, y + 8); c.closePath(); c.fill(); if (s.got > 0) { c.strokeStyle = '#fff6dc'; c.lineWidth = 2; c.beginPath(); c.arc(TX + TW / 2, y, 14, -Math.PI / 2, -Math.PI / 2 + TAU * s.got); c.stroke(); } }
       // it
-      c.fillStyle = 'rgba(0,0,0,.7)'; c.fillRect(TX + 1, yOf(g.p) - 11, TW - 2, 22);
-      drawFishBody(c, F, TX + TW / 2 + (F.len * F.r * .35), yOf(g.p), 0, t * 2, 1, .75, 1.2);
+      // a dark edge around it, so it reads against the light; kept inside the column
+      c.save(); c.beginPath(); c.rect(TX, TY, TW, TH); c.clip();
+      const fx = TX + TW / 2 + (F.len * F.r * .35);
+      drawFishBody(c, { ...F, id: 'sil', col: [12, 8, 6], r: F.r + 2.5 }, fx, yOf(g.p), 0, t * 2, .9, .75, 1.2);
+      drawFishBody(c, F, fx, yOf(g.p), 0, t * 2, 1, .75, 1.2);
+      c.restore();
       // how close you are
       const mx = TX + TW + 8, low = g.meter < .25 && Math.sin(t * 14) > 0; c.fillStyle = '#0b0908'; c.fillRect(mx, TY, 16, TH);
       c.fillStyle = low ? '#c8402a' : g.meter > .75 ? '#c8d68a' : '#9da35a'; c.fillRect(mx + 2, TY + TH * (1 - g.meter), 12, TH * g.meter);
@@ -3631,7 +3673,9 @@ const NEEDS = {
   orchard: ['fruit', 'milk'], sorrow: ['worm', 'caps'], velvet: ['bile', 'yolk'], gallows: ['lamprey', 'root'], nursery: ['yolk', 'caps'], wakecake: ['silk', 'fruit'],
   ragout: ['caps', 'root'], reliquary: ['relics', 'bones']
 };
-const PANTRY_MAX = 6, KEEPS = 3;
+// the shelf holds what you gather; fish keep apart, in a pail of their own
+const SHELF_MAX = 8, PAIL_MAX = 4, KEEPS = 3, FISH = new Set(['eel', 'lamprey', 'worm', 'hand']);
+const inPail = p => FISH.has(p.id), roomFor = id => FISH.has(id) ? (L.pantry || []).filter(inPail).length < PAIL_MAX : (L.pantry || []).filter(p => !inPail(p)).length < SHELF_MAX;
 const pantryHas = id => (L.pantry || []).some(p => p.id === id || p.id === 'hand');
 function pantryTake(id) {
   let i = -1, best = -1;
@@ -3641,21 +3685,51 @@ function pantryTake(id) {
 }
 function pantryAdd(items) {
   const kept = [], lost = [];
-  for (const it of items) { if (L.pantry.length < PANTRY_MAX) { L.pantry.push({ id: it.id, q: it.q, age: 0 }); kept.push(it); } else lost.push(it); }
+  for (const it of items) { if (roomFor(it.id)) { L.pantry.push({ id: it.id, q: it.q, age: 0 }); kept.push(it); } else lost.push(it); }
   return { kept, lost };
 }
 const ingName = it => `${QUAL[jarQ(it)]} ${INGR[it.id].name}`;
 // the shelf: six places, jars darkening as they near the night they spoil
 function shelfHTML(small) {
-  const p = L.pantry || [], slots = [];
-  for (let i = 0; i < PANTRY_MAX; i++) slots.push(p[i] ? jarHTML(p[i], (p[i].age || 0) >= KEEPS ? 'old' : '') : '<span class="jar empty"></span>');
-  return `<div class="shelf${small ? ' small' : ''}">${slots.join('')}</div>`;
+  const row = (list, max) => { const slots = []; for (let i = 0; i < max; i++) slots.push(list[i] ? jarHTML(list[i], (list[i].age || 0) >= KEEPS ? 'old' : '') : '<span class="jar empty"></span>'); return slots.join(''); };
+  const p = L.pantry || [];
+  return `<div class="shelf${small ? ' small' : ' tight'}">${row(p.filter(q => !inPail(q)), SHELF_MAX)}</div><div class="shelf pail${small ? ' small' : ' tight'}">${row(p.filter(inPail), PAIL_MAX)}</div>`;
 }
-const pantryHTML = () => `<div><div class="sect">The shelf ${(L.pantry || []).length}/${PANTRY_MAX}</div>${shelfHTML()}</div>`;
+// the pantry: everything you have, laid out, and all of what there is to know about each jar
+const spoilText = n => n <= 1 ? 'Spoils at dawn' : `${n} nights left`;
+function pantryDetail(it) {
+  if (!it) return '<p class="omen">Nothing here. Go out at dusk.</p>';
+  const q = jarQ(it), n = NIGHTS_LEFT(it), I = INGR[it.id], from = I.place === 'well' ? 'The Well' : PLACES[I.place] ? PLACES[I.place].name : '—';
+  const uses = knownDishes().filter(id => (NEEDS[id] || []).includes(it.id)).map(id => { const other = NEEDS[id].find(x => x !== it.id), ready = pantryHas(other); return `<li class="${ready ? 'ready' : ''}"><b>${DISHES.find(d => d.id === id).name}</b><i>${ready ? 'ready to cook' : `still needs ${INGR[other].name}`}</i></li>`; }).join('');
+  return `<div class="phead"><img src="${ingImg(it.id)}" alt=""><div><h2>${I.name}</h2><span class="pip big">${'●'.repeat(q + 1)}${'○'.repeat(2 - q)}</span> <span class="eyebrow">${QUAL[q]}</span></div></div>
+    <dl><dt>Keeps</dt><dd class="${n <= 1 ? 'soft' : ''}">${spoilText(n)}</dd>
+    <dt>In a dish</dt><dd>${it.id === 'hand' ? 'It will do in place of anything a dish asks for.' : ING_FX[q].say[0].toUpperCase() + ING_FX[q].say.slice(1) + '.'}</dd>
+    <dt>From</dt><dd>${from}</dd></dl>
+    <div class="sect">Used in</div>${uses ? `<ul class="puses">${uses}</ul>` : '<p class="eyebrow">Nothing you know yet.</p>'}
+    <button id="toss" class="link" type="button">Throw it out</button>`;
+}
+function pantryScreen(back, sel) {
+  const p = L.pantry || [], list = [...p.filter(q => !inPail(q)), ...p.filter(inPail)];
+  if (!list.includes(sel)) sel = list[0];
+  const slot = (it, cls = '') => it ? `<button class="pslot${(NIGHTS_LEFT(it) <= 1) ? ' soft' : ''}${it === sel ? ' on' : ''}" type="button" data-p="${list.indexOf(it)}"><img src="${ingImg(it.id)}" alt=""><b>${INGR[it.id].name}</b><span class="pip">${'●'.repeat(jarQ(it) + 1)}${'○'.repeat(2 - jarQ(it))}</span><em>${spoilText(NIGHTS_LEFT(it))}</em></button>` : `<span class="pslot none ${cls}"></span>`;
+  const rows = (items, max, cls) => Array.from({ length: max }, (_, i) => slot(items[i], cls)).join('');
+  show(`<div class="card wide pantrycard"><div class="txt"><span class="eyebrow">The pantry</span><div class="pbox"><div>
+      <div class="sect">The shelf ${p.filter(q => !inPail(q)).length}/${SHELF_MAX}</div><div class="pslots">${rows(p.filter(q => !inPail(q)), SHELF_MAX)}</div>
+      <div class="sect" style="margin-top:8px">The pail ${p.filter(inPail).length}/${PAIL_MAX} · what comes out of the well</div><div class="pslots pailrow">${rows(p.filter(inPail), PAIL_MAX)}</div>
+    </div><div class="pdetail">${pantryDetail(sel)}</div></div>
+    <div class="btns"><button id="back" type="button">Back</button></div></div></div>`, n => {
+    const pick_ = it => { sel = it; n.querySelectorAll('.pslot').forEach(b => b.classList.toggle('on', +b.dataset.p === list.indexOf(it) && !!b.dataset.p)); n.querySelector('.pdetail').innerHTML = pantryDetail(it); wire(); };
+    const wire = () => { const t = n.querySelector('#toss'); if (t) t.onclick = () => { if (t.dataset.sure) { L.pantry.splice(L.pantry.indexOf(sel), 1); saveLife(); tone(120, .2, 'sine', .05, -40); pantryScreen(back); } else { t.dataset.sure = 1; t.textContent = 'Really? Press again'; } }; };
+    n.querySelectorAll('.pslot[data-p]').forEach(b => { b.onclick = () => { tone(520, .05, 'sine', .03); pick_(list[+b.dataset.p]); }; b.onmouseenter = () => { if (list[+b.dataset.p] !== sel) pick_(list[+b.dataset.p]); }; });
+    wire(); n.querySelector('#back').onclick = back;
+  });
+}
+const storeCount = () => { const p = L.pantry || [], f = p.filter(inPail).length; return `The shelf ${p.length - f}/${SHELF_MAX} · The pail ${f}/${PAIL_MAX}`; };
+const pantryHTML = () => `<div><div class="sect">${storeCount()}</div>${shelfHTML()}</div>`;
 // the shelf as a plain list you can read at a glance: what it is, how good, and how long it has left
 const NIGHTS_LEFT = p => KEEPS - (p.age || 0) + 1;
 const stockRow = p => { const n = NIGHTS_LEFT(p), q = jarQ(p); return `<span class="stockrow q${q}${n <= 1 ? ' soft' : ''}" data-ing="${p.id}"><img src="${ingImg(p.id)}" alt=""><b>${INGR[p.id].name}</b><i class="pip">${'●'.repeat(q + 1)}${'○'.repeat(2 - q)}</i><em>${n <= 1 ? 'spoils at dawn' : `${n} nights`}</em></span>`; };
-const stockHTML = (cls = '') => { const p = L.pantry || []; return `<div class="stock ${cls}"><div class="sect">The shelf ${p.length}/${PANTRY_MAX}</div>${p.length ? p.map(stockRow).join('') : '<span class="stockrow none"><em>Nothing. Go out at dusk.</em></span>'}</div>`; };
+const stockHTML = (cls = '') => { const p = L.pantry || [], sorted = [...p.filter(q => !inPail(q)), ...p.filter(inPail)]; return `<div class="stock ${cls}"><div class="sect">${storeCount()}</div>${sorted.length ? sorted.map(stockRow).join('') : '<span class="stockrow none"><em>Nothing. Go out at dusk.</em></span>'}</div>`; };
 // what each jar does for the night: more time below for a good one, a tooth for a perfect one;
 // without one you use something of your own, and that costs you
 const ING_FX = [{ mul: 0, teeth: 0, say: 'nothing extra' }, { mul: .08, teeth: 0, say: 'more time below' }, { mul: .15, teeth: 1, say: 'much more time below, and a tooth' }];
@@ -3696,9 +3770,10 @@ function gatherChoice(then, again) {
     <p class="omen big">${again ? 'There is light enough to go out once more, if you can stand it.' : 'Before the kitchen, something has to be brought in.'}</p>
     ${notePage('pantry')}
     <div class="list">${places}${row('well', 'The Well', 'Something moves at the bottom.', ['eel', 'lamprey', 'worm'], 'fish')}</div>
-    ${pantryHTML()}
-    <p class="eyebrow">A ringed jar would finish a dish you have half of.</p>
+    <div class="links"><span class="eyebrow">A ringed jar would finish a dish you have half of.</span><button id="pantry" class="link" type="button">Pantry · ${(L.pantry || []).length} jars</button></div>
     ${again ? '<div class="go"><button id="skip" type="button">Go down instead</button></div>' : ''}`), n => {
+    n.classList.add('gathercard');
+    n.querySelector('#pantry').onclick = () => pantryScreen(() => gatherChoice(then, again));
     n.querySelectorAll('[data-g]').forEach(b => b.onclick = () => startGather(b.dataset.g, then, again));
     const sk = n.querySelector('#skip'); if (sk) sk.onclick = () => { L.phase = 'night'; L.again = false; saveLife(); then(); };
   }, true);
@@ -3725,13 +3800,13 @@ function gatherResult() {
   lifeStats().gathered += kept.length;
   L.phase = 'night'; L.again = false; saveLife();
   // one more trip is allowed each night, for a price, while there is room on the shelf and Body to spend
-  const canAgain = !run.again && L.pantry.length < PANTRY_MAX && L.body > AGAIN_BODY + 4;
+  const canAgain = !run.again && (L.pantry.filter(inPail).length < PAIL_MAX || L.pantry.filter(q => !inPail(q)).length < SHELF_MAX) && L.body > AGAIN_BODY + 4;
   const then = run.then; run = null;
   show(dock(`${dayHead('Dusk', L.day)}
     <p class="omen big">${kept.length ? 'You bring back:' : 'You come back with nothing.'}</p>
     ${kept.length ? `<div class="shelf">${kept.map(it => jarHTML(it)).join('')}</div>` : ''}
     ${ripe && kept.length ? '<p class="eyebrow">It was ripe tonight. All of it came back better.</p>' : ''}
-    ${lost.length ? `<p class="eyebrow">The shelf is full. ${lost.map(it => INGR[it.id].name).join(', ')} left on the step.</p>` : ''}
+    ${lost.length ? `<p class="eyebrow">No room. ${lost.map(it => INGR[it.id].name).join(', ')} left on the step.</p>` : ''}
     ${pantryHTML()}
     <div class="go">${canAgain ? `<button id="again" type="button">Go out again · Body −${AGAIN_BODY}</button>` : ''}<button id="go" type="button">Go down</button></div>`), n => {
     n.querySelector('#go').onclick = then;
@@ -3776,7 +3851,7 @@ function quarters(notes) {
    works; they never say who wrote them or what happened. Later pages are only dated, and the hand gets worse. */
 const NOTES = {
   start: { at: 'Under the pillow', text: 'Whoever finds this: you are the cook now. When the light goes, go down. Cook what she shows you. Come back up. Sleep. Again.' },
-  feast: { at: 'Sewn into the mattress', text: 'There is one dish she never shows you. The Feast. Serve the pudding, the soufflé and the sausage, and it comes onto the menu. Five steps, for all of them at once. Do every step well and the house lets go. I got as far as the fourth.' },
+  feast: { at: 'Sewn into the mattress', text: 'There is one dish she never shows you. The Feast. Serve six dishes well first, two candles each: the pudding, the soufflé, the sausage, and once she shows you them, the ossuary broth, the lantern broth and the orchard compote. Then it comes onto the menu. Five steps, for all of them at once. Do every step well and the house lets go. I got as far as the fourth.' },
   shop: { at: 'Tucked in his pack', text: 'He takes teeth. Buy the bed first, then the lamp. Never spend what the sill needs.' },
   night: { at: 'Pinned under the plate', text: 'The kitchen eats a little of you every night. Body comes back with sleep. Mind hardly does. Watch the mind.' },
   sill: { at: 'Wedged in the sill', text: 'Every dawn the sill takes teeth. One at first, one more every four days. If it is short, it takes from your mind instead.' },
@@ -3844,7 +3919,7 @@ function dayPanel(msg) {
     const nb = n.querySelector('#notes'); if (nb) nb.onclick = () => notebook();
     // his button, on the floor by him
     const pb = el(`<button class="peddle" type="button" aria-label="Trade with the peddler">Trade ${TOOTH}${L.teeth}</button>`); pb.onclick = () => shop(); ov.appendChild(pb);
-    ov.appendChild(el(stockHTML('onwall')));
+    const wall = el(stockHTML('onwall')); wall.title = 'Open the pantry'; wall.onclick = () => pantryScreen(() => dayPanel()); ov.appendChild(wall);
     n.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
       if (L.hours <= 0) return; L.hours--;
       if (b.dataset.a === 'look') { L.event = pickEvent(); saveLife(); return eventCard(EVENTS.find(e => e.id === L.event)); }
@@ -3955,8 +4030,9 @@ function deathReport() {
 }
 function ending() {
   const R = deathReport();
-  try { localStorage.removeItem('gristle-life'); } catch (e) {}
-  L = null; mode = 'idle'; game = null; run = null; endCU();
+  // the dishes you have served go with you, so the road to the Feast starts over even if the end card is never dismissed
+  for (const k of ['gristle-life', 'gristle-best']) { try { localStorage.removeItem(k); } catch (e) {} }
+  best = {}; L = null; mode = 'idle'; game = null; run = null; endCU();
   sBad(); tone(55, 3, 'sine', .07, -15);
   fade(true, 1800, () => {
     ov.hidden = true; ov.innerHTML = '';
@@ -4130,9 +4206,9 @@ function drawPeddler(c, t) {
   const a = Math.atan2(ptr.y - top, ptr.x - x), blink = Math.sin(t * .37) > .985;
   if (!blink) { c.fillStyle = peddling ? '#e8c860' : '#c9b98a'; c.fillRect(x - 7 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); c.fillRect(x + 4 + lean + Math.cos(a) * 2, top - 1 + Math.sin(a), 3, 2); }
 }
-// the jar on the wall: every tooth you own, in a pile. What you earn drops in, what you spend lifts out, and the
+// the jar in the corner of the floor: every tooth you own, in a pile. What you earn drops in, what you spend lifts out, and the
 // count sits under it. It only animates changes you can see; coming back to the room it is simply as you left it.
-const JAR_MAX = 36, JX = 274, JY = 108;
+const JAR_MAX = 36, JX = 70, JY = 498;
 const jarSlot = i => { const row = Math.floor(i / 6), col = i % 6; return [JX - 31 + col * 10.5 + (row % 2) * 3, JY - 7 - row * 10 + ((i * 7) % 3) - 1]; };
 const jar = { shown: 0, loose: [], out: [], t: 0, pop: 0, shake: 0, seen: -1 };
 function drawJarTooth(c, x, y, i = 0, a = 1) {
@@ -4150,8 +4226,8 @@ function drawToothJar(c, dt) {
     else { jar.loose = []; jar.shown = Math.min(jar.shown, sent) - 1; jar.pop = 1; tone(520, .06, 'square', .02, -160); if (jar.shown < JAR_MAX) { const [x, y] = jarSlot(jar.shown); jar.out.push({ x, y, i: jar.shown, a: 1 }); } }
   }
   const sx = Math.sin(TT * 60) * jar.shake * 1.5;
-  // the shelf, on two nails
-  c.fillStyle = '#2a1d14'; c.fillRect(JX - 48, JY + 6, 96, 7); c.fillStyle = '#17100a'; c.fillRect(JX - 42, JY + 13, 5, 10); c.fillRect(JX + 37, JY + 13, 5, 10);
+  // its shadow on the boards
+  c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.ellipse(JX + 6, JY + 7, 50, 8, 0, 0, TAU); c.fill();
   // the jar's back, then what is in it
   c.fillStyle = 'rgba(70,84,74,.3)'; c.fillRect(JX - 38 + sx, JY - 68, 76, 74);
   for (let i = 0; i < Math.min(jar.shown, JAR_MAX); i++) { const [x, y] = jarSlot(i); drawJarTooth(c, x + sx, y, i); }
@@ -4163,7 +4239,7 @@ function drawToothJar(c, dt) {
   c.strokeStyle = 'rgba(190,205,190,.6)'; c.lineWidth = 2.5; c.strokeRect(JX - 38 + sx, JY - 68, 76, 74);
   c.fillStyle = '#3a2a1e'; c.fillRect(JX - 30 + sx, JY - 80, 60, 12);
   c.fillStyle = 'rgba(225,235,225,.22)'; c.fillRect(JX - 33 + sx, JY - 63, 6, 58);
-  T(String(jar.shown + jar.loose.length), JX, JY + 50, 38 + jar.pop * 14, jar.pop > .3 ? '#fff6dc' : '#e6dcc3');
+  T(String(jar.shown + jar.loose.length), JX + 48, JY - 6, 38 + jar.pop * 14, jar.pop > .3 ? '#fff6dc' : '#e6dcc3', 'left');
 }
 // the room's walls, window and floor are still, so they are painted once like the kitchen's
 let quartersCache = null;
@@ -5217,7 +5293,15 @@ function titleScreen() {
     if (b) b.onclick = () => { if (!armed) { armed = true; b.querySelector('span').textContent = 'Forget everything?'; b.querySelector('small').textContent = 'again to confirm'; return; } ac(); startDrone(); wipeAll(); };
   }, 'titled');
 }
-function unlocked() { return ['root', 'eyes', 'sausage'].every(id => (best[id] || 0) >= 1); }
+// the Feast opens once these have all been served well (two candles): three you start with, and three she has to show you first
+const FEAST_NEEDS = ['root', 'eyes', 'sausage', 'ossuary', 'lantern', 'orchard'];
+const feastLeft = () => FEAST_NEEDS.filter(id => (best[id] || 0) < 2);
+function unlocked() { return !feastLeft().length; }
+// what the locked Feast says it still wants; a dish she has not shown you yet is not named
+function feastLine() {
+  const left = feastLeft(), known = knownDishes(), named = left.filter(id => known.includes(id)).map(id => DISHES.find(q => q.id === id).name), hid = left.length - named.length;
+  return `Not yet. Serve these well: ${named.join(', ')}${named.length && hid ? ', and ' : ''}${hid ? `${hid} she has not shown you` : ''}.`;
+}
 function menu() {
   mode = 'idle'; mut = null; game = null; parts = []; mirrorReset();
   const known = knownDishes(), hidden = DISHES.filter(d => d.id !== 'feast' && !known.includes(d.id)).length;
@@ -5225,17 +5309,13 @@ function menu() {
     const lock = d.id === 'feast' && !unlocked();
     return `<button class="dish${L && !lock && stocked(d.id) === 2 ? ' ready' : ''}" data-id="${d.id}" type="button" ${lock ? 'disabled' : ''}>
       <canvas data-dish="${d.id}" width="160" height="100"></canvas>
-      <strong>${d.name}</strong>${d.id === 'feast' ? `<span class="needs">${lock ? `Not yet. Serve ${['root', 'eyes', 'sausage'].filter(id => !best[id]).map(id => DISHES.find(q => q.id === id).name).join(', ')}.` : 'For all of them at once. Do every step well.'}</span>` : `<span>${d.blurb}</span>`}
+      <strong>${d.name}</strong>${d.id === 'feast' ? `<span class="needs">${lock ? feastLine() : 'For all of them at once. Do every step well.'}</span>` : `<span>${d.blurb}</span>`}
       ${L && NEEDS[d.id] ? `<span class="needs${stocked(d.id) === 2 ? ' ready' : ''}">${NEEDS[d.id].map(id => `<i class="${pantryHas(id) ? 'have' : ''}${(L.pantry || []).some(p => p.id === id && NIGHTS_LEFT(p) <= 1) ? ' soft' : ''}" title="${INGR[id].name}"><img src="${ingImg(id)}" alt="">${INGR[id].name}</i>`).join('')}${stocked(d.id) === 2 ? '<b>ready</b>' : ''}</span>` : ''}
       ${lock ? '<span>&nbsp;</span>' : candles(best[d.id] || 0)}</button>`;
   }).join('') + (hidden ? `<div class="dish unknown"><strong>${hidden} more</strong><span>Ashe has not shown you these yet. Cook something well and she will.</span></div>` : '');
   const many = known.length > 7;
-  show(`<div class="card wide${many ? ' manycard' : ''}"><div class="txt">${L ? `<span class="eyebrow">Night ${L.day}</span>${stockHTML('across')}` : ''}<div class="menu${many ? ' many' : ''}">${cards}</div></div></div>`, n => {
-    // pointing at a recipe lights the jars on the shelf it would use
-    n.querySelectorAll('.dish[data-id]').forEach(b => {
-      const lit = on => { for (const id of NEEDS[b.dataset.id] || []) { const r = n.querySelector(`.stockrow[data-ing="${id}"]`); if (r) r.classList.toggle('lit', on); } };
-      b.onmouseenter = () => lit(true); b.onmouseleave = () => lit(false);
-    });
+  show(`<div class="card wide${many ? ' manycard' : ''}"><div class="txt">${L ? `<div class="menuhead"><span class="eyebrow">Night ${L.day}</span><button id="pantry" class="ghost" type="button">Pantry · ${(L.pantry || []).length} ${(L.pantry || []).length === 1 ? 'jar' : 'jars'}${(L.pantry || []).some(p => NIGHTS_LEFT(p) <= 1) ? ' · <span class="soft">one spoils at dawn</span>' : ''}</button></div>` : ''}<div class="menu${many ? ' many' : ''}">${cards}</div></div></div>`, n => {
+    const pb = n.querySelector('#pantry'); if (pb) pb.onclick = () => pantryScreen(menu);
     n.querySelectorAll('canvas[data-dish]').forEach(cn => {
       const x = cn.getContext('2d', { willReadFrequently: true }), d = DISHES.find(q => q.id === cn.dataset.dish);
       x.fillStyle = '#0d0b09'; x.fillRect(0, 0, 160, 100); x.save(); x.scale(.5, .5);
@@ -5304,8 +5384,8 @@ function resultCard(score) {
 function verdict() {
   if (run.lab && !run.life) return labVerdict();
   const avg = Math.round(run.scores.reduce((a, b) => a + b, 0) / run.scores.length), st = starsFor(avg), g = run.guest;
-  const prev = run.lab ? 3 : best[run.dish.id] || 0; if (st > prev) { best[run.dish.id] = st; saveBest(); }
-  const opened = !run.lab && run.dish.id !== 'feast' && prev < 1 && st >= 1 && unlocked();
+  const wasOpen = unlocked(), prev = run.lab ? 3 : best[run.dish.id] || 0; if (st > prev) { best[run.dish.id] = st; saveBest(); }
+  const opened = !run.lab && !wasOpen && unlocked();
   st >= 2 ? sGood() : sBad();
   const rows = run.steps.map((s, i) => `<span>${run.scores[i]}${s.m ? ' ' + SIGIL[s.m] : ''}</span>`).join('');
   if (!L) L = NEW_LIFE();
@@ -5347,7 +5427,7 @@ function verdict() {
     <p class="omen">${g.verdict[st]}</p>
     <div class="scores">${rows}</div>
     ${escaped ? '<p class="omen">They have all been fed. Above you, something in the house splits.</p>' : feast ? '<p class="omen">One of the steps did not hold. The house keeps you.</p>' : ''}
-    ${opened ? '<p class="omen">Something else is on the stairs.</p>' : ''}
+    ${opened ? '<p class="omen">They are all coming now. The Feast is on the menu.</p>' : ''}
     ${learned ? `<p class="omen">Ashe watched you work. She shows you something new: <b>${learned.name}</b>.</p>` : ''}
     ${page}
     <div class="btns"><button id="go" type="button">Go up</button></div></div>
